@@ -1,0 +1,73 @@
+# Compilados y bytecode de Python
+__pycache__/
+*.py[cod]
+*.so
+*.pyd
+*.pyo
+
+# Entornos virtuales
+.env/
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+
+# Archivos de configuración de herramientas de IDE
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Archivos de log y temporales
+*.log
+*.tmp
+*.bak
+*.swp
+
+# Salida de pruebas y cobertura
+htmlcov/
+.tox/
+.nox/
+.coverage
+coverage.xml
+*.cover
+*.py,cover
+.cache
+.pytest_cache/
+
+# Notebooks y outputs
+*.ipynb_checkpoints
+*.nbconvert.ipynb
+
+# Builds
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Archivos de datos temporales o de ejemplo
+data/*.csv
+data/*.json
+data/*.dat
+data/*.txt
+*.out
+
+# Archivos generados por plots o reportes
+*.png
+*.jpg
+*.svg
+*.pdf
+
+# Otros archivos típicos a ignorar
+.DS_Store
+Thumbs.db
+*.orig
+*.rej
+
+# Archivos de proyectos específicos
+*.mat
+*.m
+*.mdl
+
+# ¡Agregá acá cualquier cosa tuya que quieras ignorar!
