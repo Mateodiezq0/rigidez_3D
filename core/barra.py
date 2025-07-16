@@ -27,7 +27,7 @@ class Barra:
     beta_y: Optional[float] = None  # Rotación alrededor del eje Y
     beta_z: Optional[float] = None  # Rotación alrededor del eje Z
 
-    def calcular_longitud_y_angulos(self):
+    def calcular_longitud_y_angulos(self):                                                  #DONE
         if self.nodo_i_obj is None or self.nodo_f_obj is None:
             raise ValueError("Debe asignar nodo_i_obj y nodo_f_obj antes de calcular.")
 
@@ -165,3 +165,69 @@ class Barra:
 
             if self.L is None and self.nodo_i_obj and self.nodo_f_obj:
                 self.calcular_longitud_y_angulos()
+        
+    
+
+
+    def base_local_rotada(self, theta_perfil=0.0):
+            # 1. Eje z local (barra)
+            coord_i = self.nodo_i_obj.get_coord()
+            coord_f = self.nodo_f_obj.get_coord()
+            z_local = coord_f - coord_i
+            z_local = z_local / np.linalg.norm(z_local)
+            # 2. x_local inicial (puede ser vertical global cruz z_local)
+            if abs(z_local[2]) < 0.99:
+                ref = np.array([0, 0, 1])
+            else:
+                ref = np.array([0, 1, 0])
+            x_local_0 = np.cross(ref, z_local)
+            x_local_0 = x_local_0 / np.linalg.norm(x_local_0)
+            # 3. y_local_0
+            y_local_0 = np.cross(z_local, x_local_0)
+            # 4. Armá matriz base local inicial
+            base_0 = np.column_stack((x_local_0, y_local_0, z_local))
+            # 5. Rotá en el plano local x-y (alrededor de z local)
+            theta = np.radians(theta_perfil)
+            rot_xy = np.array([
+                [np.cos(theta), -np.sin(theta), 0],
+                [np.sin(theta),  np.cos(theta), 0],
+                [0,             0,              1]
+            ])
+            # 6. Base local rotada final
+            base_final = base_0 @ rot_xy
+            return base_final  # Columnas: x_local, y_local, z_local
+
+    def transformar_carga_global_a_local(self, carga):
+        """
+        Transforma una carga definida en global (por módulo y dirección) a local,
+        usando el giro del perfil dado por la propia carga.
+        Soporta tanto cosenos directores como ángulos esféricos.
+        """
+        # Construir vector global según cómo venga la carga
+        if hasattr(carga, 'lambda_x'):
+            F_global = np.array([
+                carga.q1 * carga.lambda_x,
+                carga.q1 * carga.lambda_y,
+                carga.q1 * carga.lambda_z
+            ])
+        elif hasattr(carga, 'alpha_x') and hasattr(carga, 'alpha_y') and hasattr(carga, 'alpha_z'):
+            # Usando ángulos respecto a ejes globales
+            lam_x = np.cos(np.radians(carga.alpha_x))
+            lam_y = np.cos(np.radians(carga.alpha_y))
+            lam_z = np.cos(np.radians(carga.alpha_z))
+            F_global = carga.q1 * np.array([lam_x, lam_y, lam_z])
+        else:
+            # Si tenés azimut y elevación (esféricas)
+            theta = np.radians(carga.azimut_deg)
+            phi = np.radians(carga.elev_deg)
+            F_global = np.array([
+                carga.q1 * np.cos(phi) * np.cos(theta),
+                carga.q1 * np.cos(phi) * np.sin(theta),
+                carga.q1 * np.sin(phi)
+            ])
+        
+        # Usar el ángulo de giro guardado en la carga
+        theta_perfil = getattr(carga, 'theta_perfil', 0.0)
+        base_local = self.base_local_rotada(theta_perfil=theta_perfil)
+        F_local = base_local.T @ F_global
+        return F_local
