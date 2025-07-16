@@ -3,6 +3,7 @@
 import pytest
 from core.nodos import Nodo
 from core.barra import Barra
+import numpy as np
 
 def test_constructor_basico():
     barra = Barra(
@@ -41,28 +42,62 @@ def test_constructor_basico():
     assert barra.beta_z is None
 
 
-def test_calcular_longitud_y_angulos():
-    n1 = Nodo(id=1, x=0, y=0, z=0)
-    n2 = Nodo(id=2, x=3, y=4, z=12)
+def test_barra_horizontal_x():
+    n1 = Nodo(1, 0, 0, 0)
+    n2 = Nodo(2, 5, 0, 0)
+    barra = Barra(id=1, nodo_i=1, nodo_f=2, E=1, I_x=1, I_y=1, I_z=1, G=1, J=1, nodo_i_obj=n1, nodo_f_obj=n2, tita=0)
+    barra.calcular_longitud_y_bases()
+    assert np.isclose(barra.L, 5)
+    assert np.allclose(barra.z_local, [1, 0, 0])  # Va sobre X
+    assert np.allclose(barra.x_local, [0, 1, 0])  # Xlocal apunta a Y
+    assert np.allclose(barra.y_local, [0, 0, 1])  # Ylocal apunta a Z
 
-    barra = Barra(
-        id=2, nodo_i=1, nodo_f=2, E=21000, I_x=10, I_y=20, I_z=30,
-        G=7000, J=5, nodo_i_obj=n1, nodo_f_obj=n2
-    )
-    # Calcular longitud y ángulos
-    barra.calcular_longitud_y_angulos()
+def test_barra_vertical_z():
+    n1 = Nodo(1, 0, 0, 0)
+    n2 = Nodo(2, 0, 0, 7)
+    barra = Barra(id=1, nodo_i=1, nodo_f=2, E=1, I_x=1, I_y=1, I_z=1, G=1, J=1, nodo_i_obj=n1, nodo_f_obj=n2, tita=0)
+    barra.calcular_longitud_y_bases()
+    assert np.isclose(barra.L, 7)
+    assert np.allclose(barra.z_local, [0, 0, 1])  # Va sobre Z
+    assert np.allclose(barra.x_local, [1, 0, 0])  # Xlocal apunta a X
+    assert np.allclose(barra.y_local, [0, 1, 0])  # Ylocal apunta a Y
 
-    # Distancia 3D: sqrt(3^2 + 4^2 + 12^2) = 13
-    assert barra.L == pytest.approx(13.0)
+def test_barra_inclinada_y_tita_0():
+    n1 = Nodo(1, 0, 0, 0)
+    n2 = Nodo(2, 2, 2, 0)
+    barra = Barra(id=1, nodo_i=1, nodo_f=2, E=1, I_x=1, I_y=1, I_z=1, G=1, J=1, nodo_i_obj=n1, nodo_f_obj=n2, tita=0)
+    barra.calcular_longitud_y_bases()
+    assert np.isclose(barra.L, np.sqrt(8))
+    # z_local debe ser (1/sqrt(2), 1/sqrt(2), 0)
+    assert np.allclose(barra.z_local, [1/np.sqrt(2), 1/np.sqrt(2), 0])
+    # x_local y y_local deben ser ortogonales y unitarios
+    assert np.isclose(np.dot(barra.x_local, barra.z_local), 0)
+    assert np.isclose(np.dot(barra.y_local, barra.z_local), 0)
+    assert np.isclose(np.linalg.norm(barra.x_local), 1)
+    assert np.isclose(np.linalg.norm(barra.y_local), 1)
 
-    # Ángulo en XY: atan2(4,3) ≈ 53.13°
-    #assert barra.tita == pytest.approx(53.13, rel=1e-2)
+def test_barra_giro_tita_90():
+    n1 = Nodo(1, 0, 0, 0)
+    n2 = Nodo(2, 2, 0, 0)
+    barra = Barra(id=1, nodo_i=1, nodo_f=2, E=1, I_x=1, I_y=1, I_z=1, G=1, J=1, nodo_i_obj=n1, nodo_f_obj=n2, tita=90)
+    barra.calcular_longitud_y_bases()
+    # Sin giro, x_local=[0,1,0] y y_local=[0,0,1]
+    # Con tita=90°, x_local debe coincidir con y_local original y viceversa, pero con signo
+    assert np.allclose(barra.z_local, [1,0,0])
+    assert np.allclose(barra.x_local, [0,0,1], atol=1e-8)  # Ahora el Xlocal apunta a Z
+    assert np.allclose(barra.y_local, [0,-1,0], atol=1e-8)  # Ylocal apunta a -Y
 
-    # Beta_x: atan2(12, 5) ≈ 67.38°
-    assert barra.beta_x == pytest.approx(76.66, rel=1e-2)
-
-    # Beta_y: atan2(3, sqrt(4^2+12^2)) ≈ 13.89°
-    assert barra.beta_y == pytest.approx(72.07, rel=1e-2)
-
-    # Beta_z: atan2(4, sqrt(3^2+12^2)) ≈ 18.43°
-    assert barra.beta_z == pytest.approx(22.62, rel=1e-2)
+def test_barra_giro_tita_45():
+    n1 = Nodo(1, 0, 0, 0)
+    n2 = Nodo(2, 0, 5, 0)
+    barra = Barra(id=1, nodo_i=1, nodo_f=2, E=1, I_x=1, I_y=1, I_z=1, G=1, J=1, nodo_i_obj=n1, nodo_f_obj=n2, tita=45)
+    barra.calcular_longitud_y_bases()
+    # x_local debería ser combinación de [1,0,0] y [0,0,1]
+    # y_local = [0,1,0] debería rotar 45°
+    assert np.isclose(barra.L, 5)
+    assert np.allclose(barra.z_local, [0,1,0])
+    # Verifica ortogonalidad y norma
+    assert np.isclose(np.dot(barra.x_local, barra.z_local), 0)
+    assert np.isclose(np.dot(barra.y_local, barra.z_local), 0)
+    assert np.isclose(np.linalg.norm(barra.x_local), 1)
+    assert np.isclose(np.linalg.norm(barra.y_local), 1)
