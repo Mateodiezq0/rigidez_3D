@@ -61,13 +61,17 @@ class Barra:
         self.x_local = x_y_rotados[:, 0]   # <--- Cosenos directores x_local respecto a global
         self.y_local = x_y_rotados[:, 1]   # <--- Cosenos directores y_local respecto a global
 
+    def reacciones_carga_puntual_global(self, carga):
+        f_equiv_local = self.reacciones_carga_puntual(carga)
+        R = self.matriz_R()
+        return R @ f_equiv_local
 
     def matriz_r(self):
         # Asegura que las bases están calculadas
         if self.x_local is None or self.y_local is None or self.z_local is None:
             self.calcular_longitud_y_bases()
-        # Matriz r: cada fila = eje local expresado en global
-        r = np.vstack([self.x_local, self.y_local, self.z_local])
+        # Matriz r: cada COLUMNA = eje local expresado en global
+        r = np.column_stack([self.x_local, self.y_local, self.z_local])
         return r
 
     def matriz_R(self):
@@ -172,19 +176,20 @@ class Barra:
 
         # Cortantes (X local)
         Qx = f_local[0]
+        Qy = f_local[1]
+
         Qi_x = Qx * ((lj / self.L) ** 2) * (3 - 2 * (lj / self.L))
         Qj_x = Qx * ((li / self.L) ** 2) * (3 - 2 * (li / self.L))
         # Momentos flectores respecto X local (Y-Z plano)
-        Mi_x = Qx * li * (lj / self.L) ** 2
-        Mj_x = Qx * lj * (li / self.L) ** 2
+        Mi_x = Qy * li * (lj / self.L) ** 2
+        Mj_x = Qy * lj * (li / self.L) ** 2
 
         # Cortantes (Y local)
-        Qy = f_local[1]
         Qi_y = Qy * ((lj / self.L) ** 2) * (3 - 2 * (lj / self.L))
         Qj_y = Qy * ((li / self.L) ** 2) * (3 - 2 * (li / self.L))
         # Momentos flectores respecto Y local (X-Z plano)
-        Mi_y = Qy * li * (lj / self.L) ** 2
-        Mj_y = Qy * lj * (li / self.L) ** 2
+        Mi_y = Qx * li * (lj / self.L) ** 2
+        Mj_y = Qx * lj * (li / self.L) ** 2
 
         # (No incluimos torsión ni momento puntual, podés sumarlo si la carga genera momento)
 
@@ -193,21 +198,21 @@ class Barra:
         # Asignar cada resultado a su grado de libertad correspondiente
 
         f_equiv = np.zeros(12)
-        # Nodo inicial (i)
-        f_equiv[0] = Qi_x     # Fuerza X local en nodo i
-        f_equiv[1] = Qi_y     # Fuerza Y local en nodo i
-        f_equiv[2] = Ni       # Fuerza Z local en nodo i (axial)
-        f_equiv[3] = Mi_x     # Momento alrededor de X local en nodo i
-        f_equiv[4] = Mi_y     # Momento alrededor de Y local en nodo i
-        # f_equiv[5] = 0      # Momento alrededor de Z local en nodo i (torsión, sumar si corresponde)
+        # Nodo inicial (i) [Qi_x, Qi_y, Ni, Mi_x, Mi_y, 0]
+        f_equiv[2] = -Ni        # Fuerza axial (X_local) en nodo i
+        f_equiv[1] = -Qi_y      # Fuerza Y_local en nodo i (cortante principal)
+        f_equiv[0] = -Qi_x      # Fuerza Z_local en nodo i (cortante secundaria)
+        f_equiv[3] = -Mi_x      # Momento torsor (X_local) en nodo i
+        f_equiv[4] = -Mi_y      # Momento flexor principal (Y_local) en nodo i
+        #f_equiv[5] = Mi_z      # Momento flexor secundario (Z_local) en nodo i #NO  TENEMOS TODAVIA
 
-        # Nodo final (j)
-        f_equiv[6] = Qj_x     # Fuerza X local en nodo j
-        f_equiv[7] = Qj_y     # Fuerza Y local en nodo j
-        f_equiv[8] = Nj       # Fuerza Z local en nodo j (axial)
-        f_equiv[9] = -Mj_x    # Momento alrededor de X local en nodo j (ojo: signo clásico)
-        f_equiv[10] = -Mj_y   # Momento alrededor de Y local en nodo j (ojo: signo clásico)
-        # f_equiv[11] = 0     # Momento alrededor de Z local en nodo j (torsión, sumar si corresponde)
+        # Nodo final (j) [Qj_x, Qj_y, Nj, Mj_x, Mj_y, 0]
+        f_equiv[8] = -Nj        # Fuerza axial (X_local) en nodo j
+        f_equiv[7] = -Qj_y      # Fuerza Y_local en nodo j (cortante principal)
+        f_equiv[6] = -Qj_x      # Fuerza Z_local en nodo j (cortante secundaria)
+        f_equiv[9] = Mj_x     # Momento torsor (X_local) en nodo j
+        f_equiv[10] = Mj_y    # Momento flexor principal (Y_local) en nodo j
+        #f_equiv[11] = -Mj_z    # Momento flexor secundario (Z_local) en nodo j #NO  TENEMOS TODAVIA
 
         return f_equiv
 
