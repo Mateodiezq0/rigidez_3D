@@ -20,9 +20,7 @@ def test_constructor_basico():
         #tita=90,
         nodo_i_obj=None,
         nodo_f_obj=None,
-        beta_x=None,
-        beta_y=None,
-        beta_z=None
+
     )
     assert barra.id == 101
     assert barra.nodo_i == 1
@@ -37,9 +35,7 @@ def test_constructor_basico():
     #assert barra.tita == 90
     assert barra.nodo_i_obj is None
     assert barra.nodo_f_obj is None
-    assert barra.beta_x is None
-    assert barra.beta_y is None
-    assert barra.beta_z is None
+
 
 
 def test_barra_horizontal_x():
@@ -76,6 +72,7 @@ def test_barra_inclinada_y_tita_0():
     assert np.isclose(np.linalg.norm(barra.x_local), 1)
     assert np.isclose(np.linalg.norm(barra.y_local), 1)
 
+
 def test_barra_giro_tita_90():
     n1 = Nodo(1, 0, 0, 0)
     n2 = Nodo(2, 2, 0, 0)
@@ -86,6 +83,8 @@ def test_barra_giro_tita_90():
     assert np.allclose(barra.z_local, [1,0,0])
     assert np.allclose(barra.x_local, [0,0,1], atol=1e-8)  # Ahora el Xlocal apunta a Z
     assert np.allclose(barra.y_local, [0,-1,0], atol=1e-8)  # Ylocal apunta a -Y
+
+
 
 def test_barra_giro_tita_45():
     n1 = Nodo(1, 0, 0, 0)

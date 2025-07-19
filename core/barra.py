@@ -19,21 +19,16 @@ class Barra:
     L: Optional[float] = None  # Longitud del perfil (si no se calcula automáticamente)
     tita: Optional[float] = None  # Ángulo de inclinación del perfil (en grados)
 
-    # Cosenos directores
-    lambda_x: Optional[float] = None  # Cosenos directores en X
-    lambda_y: Optional[float] = None  # Cosenos directores en Y
-    lambda_z: Optional[float] = None  # Cosenos directores en Z
-
+    z_local: Optional[np.ndarray] = None  # Cosenos directores z_local respecto a global
+    x_local: Optional[np.ndarray] = None  # Cosenos directores x_local respecto a global
+    y_local: Optional[np.ndarray] = None  # Cosenos directores y_local respecto a global
     
+    cargas = field(default_factory=list)  # Cargas aplicadas a la barra
+
 
     # Nuevos atributos para guardar los objetos Nodo
     nodo_i_obj: Optional["Nodo"] = None
     nodo_f_obj: Optional["Nodo"] = None
-
-    # Nuevos atributos para trabajar en 3D
-    beta_x: Optional[float] = None  # Rotación alrededor del eje X
-    beta_y: Optional[float] = None  # Rotación alrededor del eje Y
-    beta_z: Optional[float] = None  # Rotación alrededor del eje Z
 
     def calcular_longitud_y_bases(self):            #DONEEEEE
         # 1. Calcula vector de barra
@@ -66,10 +61,6 @@ class Barra:
         self.x_local = x_y_rotados[:, 0]   # <--- Cosenos directores x_local respecto a global
         self.y_local = x_y_rotados[:, 1]   # <--- Cosenos directores y_local respecto a global
 
-        # 5. Guarda también los cosenos directores de la barra (para compatibilidad)
-        self.lambda_x = self.z_local[0]
-        self.lambda_y = self.z_local[1]
-        self.lambda_z = self.z_local[2]
 
     def matriz_r(self):
         # Asegura que las bases están calculadas
@@ -86,6 +77,13 @@ class Barra:
         for i in range(4):
             R[i*3:(i+1)*3, i*3:(i+1)*3] = r
         return R
+
+    def añadirCarga(self, carga):
+        """
+        Añade una carga a la barra.
+        La carga debe ser un objeto que tenga los atributos necesarios para transformarla a local.
+        """
+        self.cargas.append(carga)
 
     def matriz_rigidez_portico_3d(self):
         # Asegura que la longitud y las bases están listas
@@ -133,6 +131,90 @@ class Barra:
         
         return R.T @ Kloc @ R
     
+    def reacciones_carga_puntual(self, carga: "CargaPuntual"):
+        """
+        Calcula las reacciones equivalentes en los extremos de la barra
+        debidas a una carga puntual en cualquier parte de la barra, usando sistema local.
+        Retorna un vector de fuerzas nodales equivalentes (12) en local.
+        """
+
+        # 1. Calcula la base local si hace falta
+        if self.z_local is None or self.x_local is None or self.y_local is None:
+            self.calcular_longitud_y_bases()
+
+        # 2. Proyecta la carga en el sistema local de la barra
+        modulo = carga.q
+        alpha_x = np.radians(carga.alpha_x)
+        alpha_y = np.radians(carga.alpha_y)
+        alpha_z = np.radians(carga.alpha_z)
+        v_carga_global = modulo * np.array([np.cos(alpha_x), np.cos(alpha_y), np.cos(alpha_z)])
+        # Cambio de base: global -> local
+        r_base = np.vstack([self.x_local, self.y_local, self.z_local])  # matriz r 3x3
+        f_local = r_base @ v_carga_global  # fuerza en sistema local [Fx, Fy, Fz]
+
+        # 3. POSICIÓN RELATIVA DE LA CARGA SOBRE LA BARRA
+        # - li: distancia desde nodo_i a la carga
+        # - lj: distancia desde nodo_j a la carga
+        # Proyectamos el vector (nodo_i -> carga) sobre el eje de barra (z_local)
+        nodo_i = self.nodo_i_obj.get_coord()
+        pos_carga = np.array([carga.x, carga.y, carga.z])
+        vec_ic = pos_carga - nodo_i
+        li = np.dot(vec_ic, self.z_local)
+        lj = self.L - li
+
+        # 4. Usar super-fórmulas tipo Timoshenko (o Cook) para cada eje local
+        # Generalizando la clásica de 2D (revisá si usás diferente convención):
+
+        # Axial (Z local)
+        N = f_local[2]  # Componente axial (Fz en local)
+        Ni = N * (lj / self.L)
+        Nj = N * (li / self.L)
+
+        # Cortantes (X local)
+        Qx = f_local[0]
+        Qi_x = Qx * ((lj / self.L) ** 2) * (3 - 2 * (lj / self.L))
+        Qj_x = Qx * ((li / self.L) ** 2) * (3 - 2 * (li / self.L))
+        # Momentos flectores respecto X local (Y-Z plano)
+        Mi_x = Qx * li * (lj / self.L) ** 2
+        Mj_x = Qx * lj * (li / self.L) ** 2
+
+        # Cortantes (Y local)
+        Qy = f_local[1]
+        Qi_y = Qy * ((lj / self.L) ** 2) * (3 - 2 * (lj / self.L))
+        Qj_y = Qy * ((li / self.L) ** 2) * (3 - 2 * (li / self.L))
+        # Momentos flectores respecto Y local (X-Z plano)
+        Mi_y = Qy * li * (lj / self.L) ** 2
+        Mj_y = Qy * lj * (li / self.L) ** 2
+
+        # (No incluimos torsión ni momento puntual, podés sumarlo si la carga genera momento)
+
+        # 5. Armar el vector de fuerzas nodales equivalentes para barra 3D
+        # [u_xi, u_yi, u_zi, rot_xi, rot_yi, rot_zi, u_xj, u_yj, u_zj, rot_xj, rot_yj, rot_zj]
+        # Asignar cada resultado a su grado de libertad correspondiente
+
+        f_equiv = np.zeros(12)
+        # Nodo inicial (i)
+        f_equiv[0] = Qi_x     # Fuerza X local en nodo i
+        f_equiv[1] = Qi_y     # Fuerza Y local en nodo i
+        f_equiv[2] = Ni       # Fuerza Z local en nodo i (axial)
+        f_equiv[3] = Mi_x     # Momento alrededor de X local en nodo i
+        f_equiv[4] = Mi_y     # Momento alrededor de Y local en nodo i
+        # f_equiv[5] = 0      # Momento alrededor de Z local en nodo i (torsión, sumar si corresponde)
+
+        # Nodo final (j)
+        f_equiv[6] = Qj_x     # Fuerza X local en nodo j
+        f_equiv[7] = Qj_y     # Fuerza Y local en nodo j
+        f_equiv[8] = Nj       # Fuerza Z local en nodo j (axial)
+        f_equiv[9] = -Mj_x    # Momento alrededor de X local en nodo j (ojo: signo clásico)
+        f_equiv[10] = -Mj_y   # Momento alrededor de Y local en nodo j (ojo: signo clásico)
+        # f_equiv[11] = 0     # Momento alrededor de Z local en nodo j (torsión, sumar si corresponde)
+
+        return f_equiv
+
+
+
+
+
 
     def __init__(
             self,
@@ -148,9 +230,6 @@ class Barra:
             L: Optional[float] = None,
             nodo_i_obj: Optional["Nodo"] = None,
             nodo_f_obj: Optional["Nodo"] = None,
-            beta_x: Optional[float] = None,
-            beta_y: Optional[float] = None,
-            beta_z: Optional[float] = None,
             A: Optional[float] = None,
             tita: Optional[float] = None  # Ángulo de inclinación del perfil (en grados, si no se calcula automáticamente)
         ):
@@ -168,9 +247,6 @@ class Barra:
             self.nodo_i_obj = nodo_i_obj
             self.nodo_f_obj = nodo_f_obj
             self.tita = tita  # Ángulo de inclinación del perfil (en grados)
-            self.beta_x = beta_x
-            self.beta_y = beta_y
-            self.beta_z = beta_z
 
             if self.L is None and self.nodo_i_obj and self.nodo_f_obj:
                 self.calcular_longitud_y_bases()
