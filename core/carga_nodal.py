@@ -2,7 +2,6 @@ from dataclasses import dataclass, field
 import numpy as np
 from typing import List
 
-@dataclass
 class CargaNodal:
     nodo_id: int
     fx: float = 0.0  # Fuerza en X

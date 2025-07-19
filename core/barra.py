@@ -35,7 +35,7 @@ class Barra:
     beta_y: Optional[float] = None  # Rotación alrededor del eje Y
     beta_z: Optional[float] = None  # Rotación alrededor del eje Z
 
-    def calcular_longitud_y_bases(self):
+    def calcular_longitud_y_bases(self):            #DONEEEEE
         # 1. Calcula vector de barra
         coord_i = self.nodo_i_obj.get_coord()
         coord_f = self.nodo_f_obj.get_coord()
