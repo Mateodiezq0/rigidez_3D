@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 import numpy as np
+from core.carga_puntual import CargaPuntual
 from core.nodos import Nodo
 from typing import List, Optional
 from math import radians, cos, sin, pi
