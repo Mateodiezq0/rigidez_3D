@@ -74,8 +74,8 @@ class Barra:
     def conversion_local_global(self):
         R = self.matriz_R()
         self.reaccion_total_global = R @ self.reaccion_total_local
-        self.reac_eq_i_global -= self.reaccion_total_global[:6]
-        self.reac_eq_f_global -= self.reaccion_total_global[6:]
+        self.reac_eq_i_global = -(self.reaccion_total_global[:6])
+        self.reac_eq_f_global = -(self.reaccion_total_global[6:])
 
     def matriz_r(self):
         # Asegura que las bases están calculadas
@@ -120,29 +120,33 @@ class Barra:
         # Los términos de la matriz de rigidez local (según la imagen que nos diste)
         Kloc[0, 0] = E * A / L  # Rigidez axial (A * E / L)
         Kloc[1, 1] = 12 * E * I_z / L**3  # Rigidez de flexión en Z
-        Kloc[1, 5] = -6 * E * I_z / L**2  # Flexión en Z
         Kloc[2, 2] = 12 * E * I_y / L**3  # Rigidez de flexión en Y
-        Kloc[2, 4] = 6 * E * I_y / L**2  # Flexión en Y
         Kloc[3, 3] = G * J / L  # Rigidez torsional
         Kloc[4, 4] = 4 * E * I_y / L  # Flexión en Y
-        Kloc[4, 5] = 6 * E * I_y / L**2  # Flexión en Y
         Kloc[5, 5] = 4 * E * I_z / L  # Flexión en Z
-        Kloc[5, 4] = 6 * E * I_z / L**2  # Flexión en Z
         Kloc[6, 6] = E * A / L  # Rigidez axial (A * E / L)
         Kloc[7, 7] = 12 * E * I_z / L**3  # Rigidez de flexión en Z
         Kloc[8, 8] = 12 * E * I_y / L**3  # Rigidez de flexión en Y
         Kloc[9, 9] = G * J / L  # Rigidez torsional
-        Kloc[10, 10] = 4 * E * I_z / L  # Flexión en Z
-        Kloc[11, 11] = 4 * E * I_y / L  # Flexión en Y
+        Kloc[10, 10] = 4 * E * I_y / L  # Flexión en Y
+        Kloc[11, 11] = 4 * E * I_z / L  # Flexión en Z
 
         # Rellenamos las otras entradas simétricas de la matriz
-        Kloc[1, 2] = Kloc[2, 1] = -6 * E * I_y / L**2
-        Kloc[1, 3] = Kloc[3, 1] = 6 * E * I_z / L**2
-        Kloc[2, 3] = Kloc[3, 2] = -12 * E * I_z / L**3
-        Kloc[4, 5] = Kloc[5, 4] = -6 * E * I_y / L**2
-        Kloc[5, 5] = 4 * E * I_z / L
-        Kloc[6, 6] = E * A / L  # Rigidez axial (repetido)
-
+        Kloc[4, 2] = Kloc[2, 4] = -6 * E * I_y / L**2
+        Kloc[1, 5] = Kloc[5, 1] = 6 * E * I_z / L**2 
+        Kloc[6, 0] = Kloc[0, 6] = - E * A / L 
+        Kloc[7, 1] = Kloc[1, 7] = - 12 * E * I_z / L**3  
+        Kloc[7, 5] = Kloc[5, 7] = - 6 * E * I_z / L**2  
+        Kloc[8, 2] = Kloc[2, 8] = - 12 * E * I_y / L**3 
+        Kloc[8, 4] = Kloc[4, 8] = 6 * E * I_y / L**2 
+        Kloc[9, 3] = Kloc[3, 9] = - G * J / L
+        Kloc[10, 2] = Kloc[2, 10] = -6 * E * I_y / L**2
+        Kloc[10, 4] = Kloc[4, 10] = 2 * E * I_y / L
+        Kloc[10, 8] = Kloc[8, 10] = 6 * E * I_y / L**2
+        Kloc[11, 1] = Kloc[1, 11] = 6 * E * I_z / L**2  
+        Kloc[11, 5] = Kloc[5, 11] = 2 * E * I_z / L
+        Kloc[11, 7] = Kloc[7, 11] = -6 * E * I_z / L**2  
+        
         R = self.matriz_R()
         
         return R.T @ Kloc @ R
