@@ -54,3 +54,37 @@ class Estructura:
 
         self.vector_nodal_equivalente = vector_global
         return vector_global
+    
+    def ensamble_matriz_global(self):
+        """
+        Ensambla la matriz global de rigidez K para toda la estructura.
+        Devuelve la matriz K global (n_nodos*6 x n_nodos*6)
+        """
+        n_nodos = len(self.nodos)
+        dof_por_nodo = 6
+        size = n_nodos * dof_por_nodo
+        K_global = np.zeros((size, size))
+
+        for barra in self.barras:
+            K_b = barra.matriz_rigidez_portico_3d()  # Matriz 12x12, ya en global
+            idx_i = (barra.nodo_i - 1) * dof_por_nodo
+            idx_j = (barra.nodo_f - 1) * dof_por_nodo
+
+            # Mapear los 12 DOFs de la barra a los DOFs globales
+            dofs = [
+                idx_i + 0, idx_i + 1, idx_i + 2, idx_i + 3, idx_i + 4, idx_i + 5,
+                idx_j + 0, idx_j + 1, idx_j + 2, idx_j + 3, idx_j + 4, idx_j + 5,
+            ]
+
+            # Ensamblado (sumar K_b en la K_global)
+            for a in range(12):
+                for b in range(12):
+                    K_global[dofs[a], dofs[b]] += K_b[a, b]
+            
+            print(K_b)
+            print()
+
+        self.K_global = K_global
+        print("==========XDXDXD=========")
+        print(K_global)
+        return K_global
