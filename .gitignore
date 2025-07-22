@@ -71,3 +71,5 @@ Thumbs.db
 *.mdl
 
 # ¡Agregá acá cualquier cosa tuya que quieras ignorar!
+data/~$Datos_template.xlsx
+plot/tmpg49r63e9.py
