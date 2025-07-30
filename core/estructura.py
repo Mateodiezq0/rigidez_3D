@@ -149,49 +149,55 @@ class Estructura:
         self.desplazamientos = D
         return D
 
-    def calcular_reacciones(self):
+    def calcular_reacciones(self, debug=True):
         """
-        Calcula las reacciones en los grados de libertad restringidos de la estructura.
-        Guarda el vector de reacciones en self.reacciones.
+        Calcula las fuerzas y momentos internos (vector de solicitaciones) en los extremos de cada barra,
+        en coordenadas globales.
+        Devuelve:
+            lista_solicitaciones: Lista de np.ndarray (cada uno de 12,) con las solicitaciones de cada barra.
         """
         if self.desplazamientos is None:
-            raise ValueError("Primero debés resolver el sistema (llamá a .resolver())")
+            raise ValueError("Primero tenés que resolver la estructura (llamá a .resolver())")
 
-        K = self.K_global
-        F = self.vector_nodal_equivalente
+        lista_solicitaciones = []
+        dof_por_nodo = 6
         D = self.desplazamientos
 
-        ndofs = len(D)
-        dof_por_nodo = 6
-        prescripciones = np.full(ndofs, np.nan)
+        for barra in self.barras:
+            barra.conversion_local_global()  # Asegura reacciones en global
 
-        for nodo in self.nodos:
-            base = (nodo.id - 1) * dof_por_nodo
-            if hasattr(nodo, "restricciones") and nodo.restricciones is not None:
-                for i in range(dof_por_nodo):
-                    if nodo.restricciones[i]:
-                        prescripciones[base + i] = nodo.valores_prescritos[i]
+            D_barra = np.zeros(12)
+            nodo_i_obj = barra.nodo_i_obj
+            nodo_f_obj = barra.nodo_f_obj
 
-        idx_fijos = np.where(~np.isnan(prescripciones))[0]
+            # Nodo inicial
+            if nodo_i_obj is not None:
+                idx_i = (barra.nodo_i - 1) * dof_por_nodo
+                D_barra[:6] = D[idx_i:idx_i+6]
 
-        # Debug Prints
-        print("==== DEBUG REACCIONES ====")
-        print("Restricciones nodales (indices fijos):", idx_fijos)
-        print("Prescripciones:", prescripciones)
-        print("K_global:\n", K)
-        print("Desplazamientos D:\n", D)
-        print("F (vector nodal equivalente):\n", F)
-        print("==========================")
+            # Nodo final
+            if nodo_f_obj is not None:
+                idx_j = (barra.nodo_f - 1) * dof_por_nodo
+                D_barra[6:] = D[idx_j:idx_j+6]
 
-        F_interna = K @ D
+            # Matriz global de la barra (12x12)
+            K_barra = barra.matriz_rigidez_portico_3d()
 
-        print("K·D (fuerzas internas):\n", F_interna)
+            # Vector de fuerzas nodales equivalentes (en global)
+            F_emp_barra = barra.reaccion_total_global
 
-        reacciones = np.zeros_like(D)
-        reacciones[idx_fijos] = F_interna[idx_fijos] - F[idx_fijos]
+            # Solicitaciones internas (F = K*D - Femp)
+            F_interna = K_barra @ D_barra + F_emp_barra
 
-        print("Reacciones (solo fijos):\n", reacciones)
-        print("==========================")
+            if debug:
+                print(f"\nBarra {barra.id}:")
+                print("D_barra:", D_barra)
+                print("K_barra:\n", K_barra)
+                print("F_emp_barra:", F_emp_barra)
+                print("F_interna:", F_interna)
+                print("================ XDXDXD ================")
 
-        self.reacciones = reacciones
-        return reacciones
+            lista_solicitaciones.append(F_interna)
+
+        return lista_solicitaciones
+    

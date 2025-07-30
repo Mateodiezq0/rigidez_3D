@@ -9,7 +9,7 @@ class CargaPuntual:
     y: float  # Posición de inicio de la carga 
     z: float  # Posición de inicio de la carga 
 
-    q: float  # Magnitud de la carga 
+    q: float  # Magnitud de la carga (fuerza o momento) (En KN, teniendo en cuenta que si el numero es positivo, la carga es hacia arriba, y si es negativo, hacia abajo) 
 
     alpha_x: float  # Ángulo respecto al eje X
     alpha_y: float  # Ángulo respecto al eje Y
