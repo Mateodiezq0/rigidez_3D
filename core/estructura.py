@@ -68,7 +68,7 @@ class Estructura:
         K_global = np.zeros((size, size))
 
         for barra in self.barras:
-            K_b = barra.matriz_rigidez_portico_3d()  # Matriz 12x12, ya en global
+            K_b = barra.Kglobal()  # Matriz 12x12, ya en global
             idx_i = (barra.nodo_i - 1) * dof_por_nodo
             idx_j = (barra.nodo_f - 1) * dof_por_nodo
 
@@ -181,7 +181,7 @@ class Estructura:
                 D_barra[6:] = D[idx_j:idx_j+6]
 
             # Matriz global de la barra (12x12)
-            K_barra = barra.matriz_rigidez_portico_3d()
+            K_barra = barra.Kglobal()
 
             # Vector de fuerzas nodales equivalentes (en global)
             F_emp_barra = barra.reaccion_total_global

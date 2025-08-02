@@ -20,9 +20,9 @@ class Barra:
     L: Optional[float] = None  # Longitud del perfil (si no se calcula automáticamente)
     tita: Optional[float] = None  # Ángulo de inclinación del perfil (en grados)
 
-    z_local: Optional[np.ndarray] = None  # Cosenos directores z_local respecto a global
     x_local: Optional[np.ndarray] = None  # Cosenos directores x_local respecto a global
     y_local: Optional[np.ndarray] = None  # Cosenos directores y_local respecto a global
+    z_local: Optional[np.ndarray] = None  # Cosenos directores z_local respecto a global
     
     cargas: list = field(default_factory=list)  # Cargas aplicadas a la barra
 
@@ -38,49 +38,10 @@ class Barra:
     reaccion_total_global: Optional[np.ndarray] = field(default_factory=lambda: np.zeros(12))    #Reaccion total de las barras GLOBAL
     reac_eq_i_global: Optional[np.ndarray] = field(default_factory=lambda: np.zeros(6))          #Reaccion equivalente de nodo inicial GLOBAL
     reac_eq_f_global: Optional[np.ndarray] = field(default_factory=lambda: np.zeros(6))          #Reaccion equivalente de nodo final GLOBAL
+    k_eje_dat : Optional[np.ndarray] = None  # Matriz de rigidez en el eje de la barra (12x12)
+    k_altura_dat : Optional[np.ndarray] = None  # Matriz de rigidez en la altura de la barra (12x12)
+    k_global_dat : Optional[np.ndarray] = None  # Matriz de rigidez global (12x12)
     
-    
-    """ def calcular_longitud_y_bases(self):
-        # 1. Coordenadas de los nodos
-        coord_i = self.nodo_i_obj.get_coord()
-        coord_f = self.nodo_f_obj.get_coord()
-
-        # 2. X_local: eje de la barra (nodo i a nodo f)
-        x_local = coord_f - coord_i
-        self.L = np.linalg.norm(x_local)
-        self.x_local = x_local / self.L
-
-        # 3. Definí un vector "vertical" auxiliar para crear Z_local (puede ser Z global)
-        # Evitá que sea colineal a x_local (si barra ≈ eje X, entonces usá Y global como up)
-        if np.allclose(np.abs(self.x_local), [1, 0, 0]):
-            up = np.array([0, 0, 1])
-        else:
-            up = np.array([0, 0, 1])
-
-        # 4. Z_local inicial: perpendicular a x_local, lo más parecido posible a up
-        z_local = np.cross(self.x_local, up)
-        if np.linalg.norm(z_local) < 1e-6:
-            # Si es casi cero, la barra es paralela a up: usá otro up, por ejemplo Y global
-            up = np.array([0, 1, 0])
-            z_local = np.cross(self.x_local, up)
-        self.z_local = z_local / np.linalg.norm(z_local)
-
-        # 5. Rotación por tita (en el plano x_local-z_local)
-        # Rotamos z_local y y_local alrededor de x_local (barra)
-        theta = np.radians(self.tita or 0.0)
-        # Construí la base ortonormal para rotar (z-y perpendiculares a x)
-        y_local = np.cross(self.z_local, self.x_local)
-        y_local = y_local / np.linalg.norm(y_local)
-
-        # Armá la matriz de rotación en el plano z-y (alrededor de x_local)
-        rot_2d = np.array([
-            [np.cos(theta), -np.sin(theta)],
-            [np.sin(theta),  np.cos(theta)]
-        ])
-        zy_rotados = np.column_stack((self.z_local, y_local)) @ rot_2d
-        self.z_local = zy_rotados[:, 0]   # Nuevo Z_local rotado
-        self.y_local = zy_rotados[:, 1]   # Nuevo Y_local rotado
-    """""
 
     def conversion_local_global(self):
         R = self.matriz_R()
@@ -128,7 +89,7 @@ class Barra:
         return f_emp
     
 
-    def matriz_rigidez_portico_3d(self):
+    """def matriz_rigidez_portico_3d(self):
         # Asegura que la longitud y las bases están listas
         self.calcular_longitud_y_bases()
         L = self.L
@@ -177,39 +138,38 @@ class Barra:
         R = self.matriz_R()
         
         return R.T @ Kloc @ R
+        """
     
     def calcular_longitud_y_bases(self):
         coord_i = self.nodo_i_obj.get_coord()
         coord_f = self.nodo_f_obj.get_coord()
         atol = 1e-6
 
-        # 1. Xlocal: siempre del menor al mayor
+        # 1. Xlocal: SIEMPRE del menor al mayor
         x_local = coord_f - coord_i
         self.L = np.linalg.norm(x_local)
         self.x_local = x_local / self.L
 
-        # 2. "Up" vector: SIEMPRE el vertical global (+Z)
+        # 2. "Up": SIEMPRE vertical global (+Z)
         up = np.array([0, 0, 1])
-
-        # 3. Si la barra es vertical, cambiá up por el global X (¡nunca el de profundidad!)
+        # Si la barra es vertical, cambiá up por Xglobal
         if np.abs(np.dot(self.x_local, up)) > 1 - atol:
             up = np.array([1, 0, 0])
 
-        # 4. Zlocal = - (x_local × up)  # OJO EL SIGNO para que Zlocal apunte a la IZQUIERDA (–Yglobal)
-        z_local = -np.cross(self.x_local, up)
+        # 3. Zlocal = up × x_local --> Zlocal queda a la DERECHA (+Yglobal)
+        z_local = np.cross(up, self.x_local)
         if np.linalg.norm(z_local) < atol:
-            # Por si justo era paralelo
-            up = np.array([0, 1, 0])
-            z_local = -np.cross(self.x_local, up)
+            up = np.array([1, 0, 0])  # si justo era vertical
+            z_local = np.cross(self.x_local, up)
         z_local = z_local / np.linalg.norm(z_local)
         self.z_local = z_local
 
-        # 5. Ylocal: siempre arriba (base derecha)
+        # 4. Ylocal: SIEMPRE ARRIBA, base derecha (z_local × x_local)
         self.y_local = np.cross(self.x_local, self.z_local)
         self.y_local = self.y_local / np.linalg.norm(self.y_local)
 
 
-        # 7. Rotación opcional (antihorario, sentido físico)
+        # 6. Rotación opcional del perfil (antihorario, sentido físico)
         theta = np.radians(self.tita or 0.0)
         base_zy = np.column_stack((self.z_local, self.y_local))
         rot_2d = np.array([
@@ -220,17 +180,8 @@ class Barra:
         self.z_local = zy_rotados[:, 0]
         self.y_local = zy_rotados[:, 1]
 
-        # 8. DEBUG
+        # 7. Debug
         self.debug_bases()
-
-
-
-
-
-
-
-
-
 
 
 
@@ -265,15 +216,17 @@ class Barra:
         alpha_y = np.radians(carga.alpha_y)
         alpha_z = np.radians(carga.alpha_z)
         v_carga_global = modulo * np.array([np.cos(alpha_x), np.cos(alpha_y), np.cos(alpha_z)])
-        r_base = np.vstack([self.x_local, self.y_local, self.z_local])  # filas = X, Y, Z local
-        f_local = r_base @ v_carga_global  # fuerza en sistema local [Fx, Fy, Fz]
+        r_base = np.vstack([self.x_local, self.y_local, self.z_local])
+        f_local = r_base @ v_carga_global  # [Fx, Fy, Fz]
+        print("v_carga_global:", v_carga_global)
+        print("f_local:", f_local)  #RE BIEN
 
         # 3. Posición relativa de la carga
         nodo_i = self.nodo_i_obj.get_coord()
         pos_carga = np.array([carga.x, carga.y, carga.z])
         vec_ic = pos_carga - nodo_i
         li = np.dot(vec_ic, self.x_local)  # Proyectado sobre Xlocal (longitud)
-        lj = self.L - li
+        lj = self.L - li #bien
 
         # 4. Super-formulas tipo Cook/Timoshenko (¡Con tu convención de ejes!)
         N = f_local[0]  # AXIAL en X_local
@@ -369,3 +322,75 @@ class Barra:
         return Kloc
     
 
+    def bloque_diagonal_4x3(self, M):
+        res = np.zeros((12, 12))
+        for i in range(4):
+            res[i*3:(i+1)*3, i*3:(i+1)*3] = M
+        return res
+
+    def matriz_A(self, alpha):
+        return np.array([
+            [1, 0, 0],
+            [0,  np.cos(alpha),  np.sin(alpha)],
+            [0, -np.sin(alpha),  np.cos(alpha)]
+        ])
+
+    def matriz_B(self, beta):
+        return np.array([
+            [ np.cos(beta), 0, -np.sin(beta)],
+            [0,            1,      0      ],
+            [ np.sin(beta), 0,  np.cos(beta)]
+        ])
+
+    def matriz_C(self, gamma):
+        return np.array([
+            [ np.cos(gamma), np.sin(gamma), 0],
+            [-np.sin(gamma), np.cos(gamma), 0],
+            [      0,              0,       1]
+        ])
+
+    def calcular_angulos_barra(self, coord_i, coord_f):
+        vec = coord_f - coord_i
+        print("Vector de la barra:", vec)
+        L = np.linalg.norm(vec)
+        x1, y1, z1 = vec / L
+        print("Coordenadas normalizadas:", x1, y1, z1)
+        beta = np.arcsin(z1)             # elevación (con respecto a XY)
+        gamma = np.arctan2(y1, x1)        # azimut (en XY)
+        print("Beta:", beta)
+        print("gamma:", gamma)
+        return beta, gamma
+
+
+    def k_eje(self):
+        alpha = np.radians(self.tita or 0.0)
+        A = self.matriz_A(alpha)
+        A = self.bloque_diagonal_4x3(A)  # Convertir a bloque diagonal 4x3
+        print(A)
+        XD = self.KlocXD()
+        print(XD)
+        self.k_eje_dat = (A.T @ XD) @ A
+        return self.k_eje_dat
+    
+    def k_altura(self):
+        coord_i = self.nodo_i_obj.get_coord()
+        coord_f = self.nodo_f_obj.get_coord()
+        beta, gamma = self.calcular_angulos_barra(coord_i, coord_f)
+        print("Beta:", beta)
+        B = self.matriz_B(beta)
+        B = self.bloque_diagonal_4x3(B)  # Convertir a bloque diagonal 4x3
+        XD = self.k_eje()
+        self.k_altura_dat = (B.T @ XD) @ B
+        return self.k_altura_dat
+
+    def Kglobal(self):
+        coord_i = self.nodo_i_obj.get_coord()
+        coord_f = self.nodo_f_obj.get_coord()
+        beta, gamma = self.calcular_angulos_barra(coord_i, coord_f)
+        print("gamma:", gamma)
+        C = self.matriz_C(gamma)
+        C = self.bloque_diagonal_4x3(C)  # Convertir a bloque diagonal 4x3
+        print("C:", C  )
+        XD = self.k_altura()
+        self.k_global_dat = (C.T @ XD) @ C
+        return self.k_global_dat
