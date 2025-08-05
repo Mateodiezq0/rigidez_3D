@@ -147,17 +147,18 @@ class Barra:
             up = np.array([1, 0, 0])
 
         # 3. Zlocal = x_local X up --> Zlocal queda a la DERECHA (-Yglobal)
-        z_local = np.cross(self.x_local,up)
-        if np.linalg.norm(z_local) < atol:
+        y_local = np.cross(up, self.x_local)
+        if np.linalg.norm(y_local) < atol:
             up = np.array([1, 0, 0])  # si justo era vertical
-            z_local = np.cross(self.x_local, up)
-        z_local = z_local / np.linalg.norm(z_local)
-        self.z_local = z_local
-
-        # 4. Ylocal: SIEMPRE ARRIBA, base derecha (z_local X x_local)
-        self.y_local = np.cross(self.z_local, self.x_local)
+            y_local = np.cross(up, self.x_local)
+        y_local = y_local / np.linalg.norm(y_local)
+        self.y_local = y_local
+        print("Xlocal:", self.x_local)
         print("Ylocal:", self.y_local)
-        self.y_local = self.y_local / np.linalg.norm(self.y_local)
+        # 4. Ylocal: SIEMPRE ARRIBA, base derecha (z_local X x_local)
+        self.z_local = np.cross(self.x_local, self.y_local)
+        print("Zlocal:", self.z_local)
+        self.z_local = self.z_local / np.linalg.norm(self.z_local)
 
         # 6. Debug
         if debug:
@@ -203,14 +204,11 @@ class Barra:
         print("v_carga_global:", v_carga_global)
         print("f_local:", f_local)  #RE BIEN
 
-        eje_x_para_momento = [1,0,0]
-        eje_y_para_momento = [0,1,0]
-        eje_z_para_momento = [0,0,1]
-
         # 3. Posición relativa de la carga
         nodo_i = self.nodo_i_obj.get_coord()
         pos_carga = np.array([carga.x, carga.y, carga.z])
         vec_ic = pos_carga - nodo_i
+        print("Vector desde nodo_i a carga:", vec_ic)
         li = np.dot(vec_ic, self.x_local)  # Proyectado sobre Xlocal (longitud)
         lj = self.L - li #bien
 
@@ -229,17 +227,17 @@ class Barra:
         # Fuerza local en Y
         fuerza_y = np.array([0, Qy, 0])
         print("fuerza_y:", fuerza_y)
-        momento_z_vec = np.cross(self.x_local, fuerza_y)
+        momento_z_vec = np.cross(fuerza_y, self.x_local)
         print("momento_z_vec:", momento_z_vec)
         print("eje_z_local:", self.z_local)
-        signo_mz = np.sign(np.dot(momento_z_vec, eje_z_para_momento))
+        signo_mz = np.sign(np.dot(momento_z_vec, self.z_local)) or 1    
         print("signo_mz:", signo_mz)
 
         Qi_y = Qy * ((lj / self.L)**2) * (3 - 2 * (lj / self.L))
         Qj_y = Qy * ((li / self.L)**2) * (3 - 2 * (li / self.L))
-        Mi_z = signo_mz * (Qy * li * ((lj / self.L)**2))
+        Mi_z = signo_mz * (abs(Qy) * li * ((lj / self.L)**2))
         print("Mi_z:", Mi_z)
-        Mj_z = - signo_mz * (Qy * lj * ((li / self.L)**2))
+        Mj_z = - signo_mz * (abs(Qy) * lj * ((li / self.L)**2))
         print("Mj_z:", Mj_z)
 
         # -------- FLEXIÓN POR Qz (Momento en Y_local) ----------
@@ -247,14 +245,14 @@ class Barra:
         print("fuerza_z:", fuerza_z)
         momento_y_vec = np.cross(fuerza_z, self.x_local)
         print("momento_y_vec:", momento_y_vec)
-        signo_my = np.sign(np.dot(momento_y_vec, eje_y_para_momento))
+        signo_my = np.sign(np.dot(momento_y_vec, self.y_local)) or 1
         print("signo_my:", signo_my)
 
         Qi_z = Qz * ((lj / self.L)**2) * (3 - 2 * (lj / self.L))
         Qj_z = Qz * ((li / self.L)**2) * (3 - 2 * (li / self.L))
-        Mi_y = signo_my * (Qz * li * ((lj / self.L)**2))
+        Mi_y = signo_my * (abs(Qz) * li * ((lj / self.L)**2))
         print("Mi_y:", Mi_y)
-        Mj_y = - signo_my * (Qz * lj * ((li / self.L)**2))
+        Mj_y = - signo_my * (abs(Qz) * lj * ((li / self.L)**2))
         print("Mj_y:", Mj_y)
 
         # 5. Vector de fuerzas nodales equivalentes (12) - tu convención

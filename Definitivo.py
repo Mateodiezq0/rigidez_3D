@@ -23,8 +23,8 @@ barra2 = Barra(
 )
 
 # 3. Crear cargas
-carga1 = CargaPuntual(id=1, x=2, y=0, z=0, q=(-1000), alpha_x=90, alpha_y=90, alpha_z=0)
-carga2 = CargaPuntual(id=2, x=7, y=0, z=0, q=(-1000), alpha_x=90, alpha_y=90, alpha_z=0)
+carga1 = CargaPuntual(id=1, x=2, y=0, z=0, q=(-1000), alpha_x=90, alpha_y=0, alpha_z=90)
+carga2 = CargaPuntual(id=2, x=7, y=0, z=0, q=(-1000), alpha_x=90, alpha_y=0, alpha_z=90)
 
 barra1.añadirCarga(carga1)
 barra2.añadirCarga(carga2)
