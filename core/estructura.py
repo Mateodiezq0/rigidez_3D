@@ -29,8 +29,10 @@ class Estructura:
 
     def agregar_carga(self, carga):
         self.cargas.append(carga)
+
+
     
-    def ensamble_cargas_equivalentes(self):
+    def ensamble_vector_cargas_nodales_equivalentes(self):
         """
         Ensambla los vectores nodales equivalentes (ya en global) de TODAS las barras.
         Suma cada barra en su nodo inicial y final.
@@ -38,11 +40,13 @@ class Estructura:
         n_nodos = len(self.nodos)
         dof_por_nodo = 6
 
+        for barra in self.barras:
+            barra.actualizar_reacciones_global()
         # Vector global de fuerzas nodales equivalentes (inicialmente en ceros)
         vector_global = np.zeros(n_nodos * dof_por_nodo)
 
         for barra in self.barras:
-            barra.conversion_local_global()
+            #barra.conversion_local_global()
             # Suponiendo: barra.reaccion_total_global ya es vector 12, ya global
             #f_eq = barra.reaccion_total_global  # O el nombre que usás, pero ya GLOBAL
 
@@ -51,10 +55,15 @@ class Estructura:
             idx_j = (barra.nodo_f - 1) * dof_por_nodo
 
             # Sumo para cada nodo de la barra
-            vector_global[idx_i:idx_i+6] += barra.reac_eq_i_global
-            vector_global[idx_j:idx_j+6] += barra.reac_eq_f_global
+            vector_global[idx_i:idx_i+6] += barra.reaccion_nudo_i_equivalente_global
+            print(f"Barra {barra.id} - Nodo inicial EQUIVALENTE GLOBAL {barra.nodo_i}: {barra.reaccion_nudo_i_equivalente_global}"
+                  f" (ESTO ES LO QUE QUIERO VER DEL ENSAMBLE INICIAL {idx_i}:{idx_i+6})")
+            vector_global[idx_j:idx_j+6] += barra.reaccion_nudo_f_equivalente_global
+            print(f"Barra {barra.id} - Nodo final EQUIVALENTE GLOBAL {barra.nodo_f}: {barra.reaccion_nudo_f_equivalente_global}"
+                  f" (ESTO ES LO QUE QUIERO VER DEL ENSAMBLE FINAL {idx_j}:{idx_j+6})")
 
         self.vector_nodal_equivalente = vector_global
+        print("Vector nodal equivalente (global): IMPORTANTISIMO", vector_global)
         return vector_global
     
     def ensamble_matriz_global(self):
@@ -91,7 +100,7 @@ class Estructura:
         #print(K_global)
         return K_global
 
-    def resolver(self, debug=True):
+    def resolver_desplazamientos(self, debug=0):
         """
         Resuelve K*D=F eliminando ecuaciones (filas y columnas) con desplazamientos prescritos.
         ¡Debug incluido paso a paso!
@@ -100,7 +109,7 @@ class Estructura:
         if not hasattr(self, "K_global") or self.K_global is None:
             self.ensamble_matriz_global()
         if not hasattr(self, "vector_nodal_equivalente") or self.vector_nodal_equivalente is None:
-            self.ensamble_cargas_equivalentes()
+            self.ensamble_vector_cargas_nodales_equivalentes()
         
         K = self.K_global
         F = self.vector_nodal_equivalente.copy()
@@ -149,7 +158,7 @@ class Estructura:
         self.desplazamientos = D
         return D
 
-    def calcular_reacciones(self, debug=True):
+    def calcular_reacciones(self, debug=0):
         """
         Calcula las fuerzas y momentos internos (vector de solicitaciones) en los extremos de cada barra,
         en coordenadas globales.
@@ -164,7 +173,7 @@ class Estructura:
         D = self.desplazamientos
 
         for barra in self.barras:
-            barra.conversion_local_global()  # Asegura reacciones en global
+            #barra.conversion_local_global()  # Asegura reacciones en global
 
             D_barra = np.zeros(12)
             nodo_i_obj = barra.nodo_i_obj
@@ -183,17 +192,20 @@ class Estructura:
             # Matriz global de la barra (12x12)
             K_barra = barra.Kglobal()
 
-            # Vector de fuerzas nodales equivalentes (en global)
-            F_emp_barra = barra.reaccion_total_global
+            # Vector de reacciones de empotramiento de barra #RE MAL
 
-            # Solicitaciones internas (F = K*D - Femp)
-            F_interna = K_barra @ D_barra + F_emp_barra
+            f_reacciones_empotramiento_de_barra = barra.reaccion_de_empotramiento_global.copy()
+
+            print(f"vector de empotramiento de barra: {f_reacciones_empotramiento_de_barra}")
+
+            # Solicitaciones internas (F = K*D + Femp)
+            F_interna = K_barra @ D_barra + f_reacciones_empotramiento_de_barra
 
             if debug:
                 print(f"\nBarra {barra.id}:")
                 print("D_barra:", D_barra)
                 print("K_barra:\n", K_barra)
-                print("F_emp_barra:", F_emp_barra)
+                print("F_emp_barra:", f_reacciones_empotramiento_de_barra)
                 print("F_interna:", F_interna)
                 print("================ XDXDXD ================")
 

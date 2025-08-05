@@ -15,11 +15,11 @@ nodo_k = Nodo(id=3, x=10, y=0, z=0, restricciones = [True,True,True,True,True,Tr
 # 2. Crear barras
 barra1 = Barra(
     id=1, nodo_i=1, nodo_f=2, E=210, I_y=19.4, I_z=106, G=80.77, J=2,
-    A=1, tita=0, nodo_i_obj=nodo_i, nodo_f_obj=nodo_j
+    A=1, tita=90, nodo_i_obj=nodo_i, nodo_f_obj=nodo_j
 )
 barra2 = Barra(
     id=2, nodo_i=2, nodo_f=3, E=210, I_y=19.4, I_z=106, G=80.77, J=2,
-    A=1, tita=0, nodo_i_obj=nodo_j, nodo_f_obj=nodo_k
+    A=1, tita=90, nodo_i_obj=nodo_j, nodo_f_obj=nodo_k
 )
 
 # 3. Crear cargas
@@ -44,12 +44,26 @@ K1loc = barra1.KlocXD()
 K1 = barra1.Kglobal()
 #K2 = barra2.matriz_rigidez_portico_3d()
 K_global = estructura.ensamble_matriz_global()
-F = estructura.ensamble_cargas_equivalentes()
-D = estructura.resolver()
+F = estructura.ensamble_vector_cargas_nodales_equivalentes()
+D = estructura.resolver_desplazamientos()
 R = estructura.calcular_reacciones()
 
+# 6 cargas  
 
-# 6. Exportar a Excel (cada una en su hoja)
+barra1.reacciones_de_empotramiento_carga_puntual(carga1)
+barra2.reacciones_de_empotramiento_carga_puntual(carga2)
+barra1.p_eje()
+barra1.p_base()
+barra1.p_global()
+barra2.p_eje()
+barra2.p_base()
+barra2.p_global()
+
+barra1.debug_bases()
+barra2.debug_bases()
+
+
+# 7. Exportar a Excel (cada una en su hoja)
 with pd.ExcelWriter("matrices_rigidez_3D.xlsx") as writer:
     pd.DataFrame(K1loc).to_excel(writer, sheet_name="Barra 1 (K1local)", index=False, header=False)
     pd.DataFrame(XD1).to_excel(writer, sheet_name="K1 (K_eje)", index=False, header=False)
@@ -61,16 +75,3 @@ with pd.ExcelWriter("matrices_rigidez_3D.xlsx") as writer:
     pd.DataFrame(D).to_excel(writer, sheet_name="Desplazamientos", index=False, header=False)
     pd.DataFrame(R).to_excel(writer, sheet_name="Reacciones", index=False, header=False)
 print("Matrices exportadas en 'matrices_rigidez_3D.xlsx' 🎉🚀")
-
-def debug_bases(self):
-    print("\n=== DEBUG BASES LOCALES BARRA", self.id, "===")
-    print("x_local:", self.x_local)
-    print("y_local:", self.y_local)
-    print("z_local:", self.z_local)
-    print("Normas:", np.linalg.norm(self.x_local), np.linalg.norm(self.y_local), np.linalg.norm(self.z_local))
-    print("Ortogonalidad x·y:", np.dot(self.x_local, self.y_local))
-    print("Ortogonalidad x·z:", np.dot(self.x_local, self.z_local))
-    print("Ortogonalidad y·z:", np.dot(self.y_local, self.z_local))
-    print("Determinante base (debe ser +1):", np.linalg.det(np.column_stack([self.x_local, self.y_local, self.z_local])))
-    print("====================================\n")
-
