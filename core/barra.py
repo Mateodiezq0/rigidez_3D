@@ -136,24 +136,26 @@ class Barra:
     def calcular_longitud_y_bases(self, debug=0):
         coord_i = self.nodo_i_obj.get_coord()
         coord_f = self.nodo_f_obj.get_coord()
-        atol = 1e-6
+        atol = 1e-3
 
         # 1. Xlocal: SIEMPRE del menor al mayor
         x_local = coord_f - coord_i
         self.L = np.linalg.norm(x_local)
         self.x_local = x_local / self.L
+        print("Xlocal:", self.x_local)
 
         # 2. "Up": SIEMPRE vertical global (+Z)
         up = np.array([0, 0, 1])
+        upy = np.array([0, 1, 0])  # Vector vertical global
         # Si la barra es vertical, cambiá up por Xglobal
         if np.abs(np.dot(self.x_local, up)) > 1 - atol:
-            up = np.array([1, 0, 0])
+            up = np.array([0, 1, 0])
+            print("Barra vertical, up cambiado a Xglobal:", up)
 
+
+        #print("Up:", up)
         # 3. Zlocal = x_local X up --> Zlocal queda a la DERECHA (-Yglobal)
         y_local = np.cross(up, self.x_local)
-        if np.linalg.norm(y_local) < atol:
-            up = np.array([1, 0, 0])  # si justo era vertical
-            y_local = np.cross(up, self.x_local)
         y_local = y_local / np.linalg.norm(y_local)
         self.y_local = y_local
         #print("Xlocal:", self.x_local)
@@ -163,16 +165,34 @@ class Barra:
         #print("Zlocal:", self.z_local)
         self.z_local = self.z_local / np.linalg.norm(self.z_local)
 
+        if np.array_equal(up, upy):
+            up = np.array([0, 1, 0])  # si justo era vertical
+            z_local = np.cross(self.x_local, up)
+            print("z2local corregido:", z_local)
+            print("x_local:", self.x_local)
+            y_local = np.cross(z_local, self.x_local)
+            print("Ylocal corregido:", self.y_local)
+            self.y_local = self.y_local / np.linalg.norm(self.y_local)
+
+        print("Ylocal:", self.y_local)
+
+
          # 5. Rotación antihoraria respecto del eje Xlocal (tita en grados)
         theta = np.radians(self.tita or 0.0)  # default 0 si no hay tita
+        print("tita (rads):", theta)
         if abs(theta) > 1e-8:
             # Solo rota si hay ángulo no nulo
+            print("y_local antes de rotar:", self.y_local)
+            print("z_local antes de rotar:", self.z_local)
             base_yz = np.column_stack((self.y_local, self.z_local))  # 3x2 matriz
+            print("Base YZ antes de rotar:", base_yz)
             rot_2d = np.array([
             [np.cos(theta), -np.sin(theta)],
             [np.sin(theta),  np.cos(theta)]
             ])  # Matriz de rotación antihoraria
+            print("Matriz de rotación 2D:", rot_2d)
             yz_rotados = base_yz @ rot_2d      # Rota ambos vectores (3x2) x (2x2) = (3x2)
+            print("Base YZ rotada:", yz_rotados)
             self.y_local = yz_rotados[:, 0]
             self.z_local = yz_rotados[:, 1]
             print("Ylocal rotado:", self.y_local)
@@ -244,21 +264,27 @@ class Barra:
         # -------- FLEXIÓN POR Qy (Momento en Z_local) ----------
         # Fuerza local en Y
 
-        fy_prueba = f_local * self.y_local
-        fz_prueba = f_local * self.z_local
-        print("Proyección de la fuerza local en Yglobal:", fy_prueba)
-        print("Proyección de la fuerza local en Zglobal:", fz_prueba)
+        #fy_prueba = f_local * self.y_local
+        #fz_prueba = f_local * self.z_local
+        #print("Proyección de la fuerza local en Yglobal:", fy_prueba)
+        #print("Proyección de la fuerza local en Zglobal:", fz_prueba)  RE MAL
 
-        fuerza_y = -fy_prueba
+        #fuerza_y = -fy_prueba
         #fuerza_y = np.array([0, Qy, 0])
         
         
-        print("fuerza_y:", fuerza_y)
-        momento_z_vec = np.cross(self.x_local,fuerza_y)
-        print("momento_z_vec:", momento_z_vec)
-        print("eje_z_local:", self.z_local)
-        signo_mz = np.sign(np.dot(momento_z_vec, self.z_local)) or 1    
-        print("signo_mz:", signo_mz)
+        #print("fuerza_y:", fuerza_y)
+        #momento_z_vec = np.cross(self.x_local,fuerza_y)
+        #print("momento_z_vec:", momento_z_vec)
+        #print("eje_z_local:", self.z_local)
+        #signo_mz = np.sign(np.dot(momento_z_vec, self.z_local)) or 1    
+        #print("signo_mz:", signo_mz)
+        """ voy a hacer una prueba con lo que dije"""
+        v_reaccion_global = - v_carga_global
+
+        reaccion_momento_global = np.cross(self.x_local, v_reaccion_global)
+        reaccion_momento_global_unitario = reaccion_momento_global / np.linalg.norm(reaccion_momento_global)
+        signo_mz = np.sign(np.dot(reaccion_momento_global_unitario, self.z_local)) or 1
 
         Qi_y = Qy * ((lj / self.L)**2) * (3 - 2 * (lj / self.L))
         Qj_y = Qy * ((li / self.L)**2) * (3 - 2 * (li / self.L))
@@ -269,15 +295,17 @@ class Barra:
 
         # -------- FLEXIÓN POR Qz (Momento en Y_local) ----------
         
-        fuerza_z= -fz_prueba
+        #fuerza_z= -fz_prueba
         #fuerza_z = np.array([0, 0, Qz])
         
         
         #print("fuerza_z:", fuerza_z)
-        momento_y_vec = np.cross(self.x_local, fuerza_z)
+        #momento_y_vec = np.cross(self.x_local, fuerza_z)
         #print("momento_y_vec:", momento_y_vec)
-        signo_my = np.sign(np.dot(momento_y_vec, self.y_local)) or 1
+        #signo_my = np.sign(np.dot(momento_y_vec, self.y_local)) or 1
         #print("signo_my:", signo_my)
+
+        signo_my = np.sign(np.dot(reaccion_momento_global_unitario, self.y_local)) or 1
 
         Qi_z = Qz * ((lj / self.L)**2) * (3 - 2 * (lj / self.L))
         Qj_z = Qz * ((li / self.L)**2) * (3 - 2 * (li / self.L))

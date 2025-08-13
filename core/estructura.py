@@ -195,8 +195,9 @@ class Estructura:
             # Vector de reacciones de empotramiento de barra #RE MAL
 
             f_reacciones_empotramiento_de_barra = barra.reaccion_de_empotramiento_global.copy()
+            
 
-            print(f"vector de empotramiento de barra: {f_reacciones_empotramiento_de_barra}")
+            print(f"vector de empotramiento de barra {barra.id}: {f_reacciones_empotramiento_de_barra}")
 
             # Solicitaciones internas (F = K*D + Femp)
             F_interna = K_barra @ D_barra + f_reacciones_empotramiento_de_barra

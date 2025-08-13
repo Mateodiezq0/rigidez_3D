@@ -29,17 +29,17 @@ barra3 = Barra(
 
 # 3. Crear cargas
 carga1 = CargaPuntual(id=1, x=0, y=0, z=3, q=(7.07), alpha_x=45, alpha_y=90, alpha_z=-45)
-#carga2 = CargaPuntual(id=2, x=2, y=0, z=5, q=(-10), alpha_x=60, alpha_y=90, alpha_z=-30)
-#carga3 = CargaPuntual(id=3, x=5, y=0, z=5, q=(-8), alpha_x=90, alpha_y=90, alpha_z=0)
-#carga4 = CargaPuntual(id=4, x=9, y=0, z=5, q=(10), alpha_x=60, alpha_y=90, alpha_z=-30)
-#carga5 = CargaPuntual(id=5, x=10, y=0, z=1, q=(7.07), alpha_x=45, alpha_y=90, alpha_z=-45)
+carga2 = CargaPuntual(id=2, x=2, y=0, z=5, q=(-10), alpha_x=60, alpha_y=90, alpha_z=-30)
+carga3 = CargaPuntual(id=3, x=5, y=0, z=5, q=(-8), alpha_x=90, alpha_y=90, alpha_z=0)
+carga4 = CargaPuntual(id=4, x=9, y=0, z=5, q=(10), alpha_x=60, alpha_y=90, alpha_z=-30)
+carga5 = CargaPuntual(id=5, x=10, y=0, z=1, q=(7.07), alpha_x=45, alpha_y=90, alpha_z=-45)
 
 
 barra1.añadirCarga(carga1)
-#barra2.añadirCarga(carga2)
-#barra2.añadirCarga(carga3)
-#barra2.añadirCarga(carga4)
-#barra3.añadirCarga(carga5)
+barra2.añadirCarga(carga2)
+barra2.añadirCarga(carga3)
+barra2.añadirCarga(carga4)
+barra3.añadirCarga(carga5)
 
 # 4. Crear estructura
 estructura = Estructura()
