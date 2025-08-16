@@ -54,13 +54,13 @@ class Barra:
 
     def p_eje(self):
         alpha = np.radians(self.tita or 0.0)
-        print(" (alpha):", alpha)
+        #print(" (alpha):", alpha)
         A = self.matriz_A(alpha)
         A = self.bloque_diagonal_4x3(A)  # Convertir a bloque diagonal 4x3
-        print("A para rotación:", A)
-        print("Rotacion de A traspuesta:", A.T)
-        self.reaccion_de_empotramiento_rotado_eje = A.T @ self.reaccion_de_empotramiento_local_total
-        print("Reacción de empotramiento rotado en eje:", self.reaccion_de_empotramiento_rotado_eje)
+        #print("A para rotación:", A)
+        #print("Rotacion de A traspuesta:", A.T)
+        self.reaccion_de_empotramiento_rotado_eje = A @ self.reaccion_de_empotramiento_local_total
+        #print("Reacción de empotramiento rotado en eje:", self.reaccion_de_empotramiento_rotado_eje)
         self.reaccion_nudo_i_equivalente_rotado_eje = -(self.reaccion_de_empotramiento_rotado_eje[:6])
         #print(f"Reacción de nudo {self.nodo_i} rotado en eje:", self.reaccion_nudo_i_equivalente_rotado_eje)
         self.reaccion_nudo_f_equivalente_rotado_eje = -(self.reaccion_de_empotramiento_rotado_eje[6:])
@@ -70,32 +70,32 @@ class Barra:
     def p_base(self):
         coord_i = self.nodo_i_obj.get_coord()
         coord_f = self.nodo_f_obj.get_coord()
-        print("Coordenadas de los nodos:", coord_i, coord_f)
-        beta, gamma = self.calcular_angulos_barra(coord_i, coord_f)
-        print("Beta:", beta)
+        #print("Coordenadas de los nodos:", coord_i, coord_f)
+        beta, gamma =  self.calcular_angulos_barra(coord_i, coord_f)
+        #print("Beta:", beta)
         B = self.matriz_B(beta)
-        B = self.bloque_diagonal_4x3(B)  # Convertir a bloque diagonal 4x3
-        self.reaccion_de_empotramiento_rotado_base = B.T @ self.reaccion_de_empotramiento_rotado_eje
-        print("Reacción de empotramiento rotado en base: ", self.reaccion_de_empotramiento_rotado_base)
+        B =  self.bloque_diagonal_4x3(B)  # Convertir a bloque diagonal 4x3
+        self.reaccion_de_empotramiento_rotado_base = B @ self.reaccion_de_empotramiento_rotado_eje
+        #print("Reacción de empotramiento rotado en base: ", self.reaccion_de_empotramiento_rotado_base)
         self.reaccion_nudo_i_equivalenete_rotado_base = -(self.reaccion_de_empotramiento_rotado_base[:6])
-        print(f"Reacción de nudo {self.nodo_i} rotado en base:", self.reaccion_nudo_i_equivalenete_rotado_base)
+        #print(f"Reacción de nudo {self.nodo_i} rotado en base:", self.reaccion_nudo_i_equivalenete_rotado_base)
         self.reaccion_nudo_f_equivalenete_rotado_base = -(self.reaccion_de_empotramiento_rotado_base[6:])
-        print(f"Reacción de nudo {self.nodo_f} rotado en base:", self.reaccion_nudo_f_equivalenete_rotado_base)
+        #print(f"Reacción de nudo {self.nodo_f} rotado en base:", self.reaccion_nudo_f_equivalenete_rotado_base)
         return self.reaccion_de_empotramiento_rotado_base, self.reaccion_nudo_i_equivalenete_rotado_base, self.reaccion_nudo_f_equivalenete_rotado_base
     
     def p_global(self):
         coord_i = self.nodo_i_obj.get_coord()
         coord_f = self.nodo_f_obj.get_coord()
-        print("Coordenadas de los nodos:", coord_i, coord_f)
+        #print("Coordenadas de los nodos:", coord_i, coord_f)
         beta, gamma = self.calcular_angulos_barra(coord_i, coord_f)
-        print("gamma:", gamma)
+        #print("gamma:", gamma)
         C = self.matriz_C(gamma)
         C = self.bloque_diagonal_4x3(C)  # Convertir a bloque diagonal 4x3
-        self.reaccion_de_empotramiento_global = C.T @ self.reaccion_de_empotramiento_rotado_base
-        print()
-        print("ID de la barra:", self.id)
-        print("Reacción de empotramiento rotado en global:", self.reaccion_de_empotramiento_global)
-        print()
+        self.reaccion_de_empotramiento_global = C @ self.reaccion_de_empotramiento_rotado_base
+        #print()
+        #print("ID de la barra:", self.id)
+        #print("Reacción de empotramiento rotado en global:", self.reaccion_de_empotramiento_global)
+        #print()
         self.reaccion_nudo_i_equivalente_global = -(self.reaccion_de_empotramiento_global[:6])
         #print(f"Reacción de nudo {self.nodo_i} rotado en global:", self.reaccion_nudo_i_equivalente_global)
         self.reaccion_nudo_f_equivalente_global = -(self.reaccion_de_empotramiento_global[6:])
@@ -145,36 +145,34 @@ class Barra:
         print("Xlocal:", self.x_local)
 
         # 2. "Up": SIEMPRE vertical global (+Z)
-        up = np.array([0, 0, 1])
-        upy = np.array([0, 1, 0])  # Vector vertical global
+        up = np.array([0, 1, 0])
         # Si la barra es vertical, cambiá up por Xglobal
         if np.abs(np.dot(self.x_local, up)) > 1 - atol:
-            up = np.array([0, 1, 0])
+            up = np.array([0, 0, 1])
             print("Barra vertical, up cambiado a Xglobal:", up)
-
-
-        #print("Up:", up)
-        # 3. Zlocal = x_local X up --> Zlocal queda a la DERECHA (-Yglobal)
-        y_local = np.cross(up, self.x_local)
-        y_local = y_local / np.linalg.norm(y_local)
-        self.y_local = y_local
-        #print("Xlocal:", self.x_local)
-        #print("Ylocal:", self.y_local)
-        # 4. Ylocal: SIEMPRE ARRIBA, base derecha (z_local X x_local)
-        self.z_local = np.cross(self.x_local, self.y_local)
-        #print("Zlocal:", self.z_local)
-        self.z_local = self.z_local / np.linalg.norm(self.z_local)
-
-        if np.array_equal(up, upy):
-            up = np.array([0, 1, 0])  # si justo era vertical
-            z_local = np.cross(self.x_local, up)
-            print("z2local corregido:", z_local)
+            y_local = np.cross(up, self.x_local)
+            self.y_local = y_local / np.linalg.norm(y_local)
+            print("ylocal corregido:", self.y_local)
             print("x_local:", self.x_local)
-            y_local = np.cross(z_local, self.x_local)
-            print("Ylocal corregido:", self.y_local)
+            z_local = np.cross(self.x_local, self.y_local)
+            print("Zlocal corregido:", z_local)
+            self.z_local = z_local / np.linalg.norm(z_local)
+        
+        else:
+            #print("Up:", up)
+            # 3. Zlocal = x_local X up --> Zlocal queda a la DERECHA (-Yglobal)
+            z_local = np.cross(self.x_local, up)
+            z_local = z_local / np.linalg.norm(z_local)
+            self.z_local = z_local
+            #print("Xlocal:", self.x_local)
+            #print("Ylocal:", self.y_local)
+            # 4. Ylocal: SIEMPRE ARRIBA, base derecha (z_local X x_local)
+            self.y_local = np.cross(self.z_local, self.x_local)
+            #print("Zlocal:", self.z_local)
             self.y_local = self.y_local / np.linalg.norm(self.y_local)
 
         print("Ylocal:", self.y_local)
+        print("Zlocal:", self.z_local)
 
 
          # 5. Rotación antihoraria respecto del eje Xlocal (tita en grados)
@@ -239,8 +237,8 @@ class Barra:
         r_base = np.vstack([self.x_local, self.y_local, self.z_local])
         #print("r_base:", r_base)
         f_local = r_base @ v_carga_global  # [Fx, Fy, Fz]
-        print("v_carga_global:", v_carga_global)
-        print("f_local:", f_local)  #RE BIEN
+        #print("v_carga_global:", v_carga_global)
+        #print("f_local:", f_local)  #RE BIEN
 
         # 3. Posición relativa de la carga
         nodo_i = self.nodo_i_obj.get_coord()
@@ -333,17 +331,17 @@ class Barra:
         # (Si tenés que sumar torsión o momento puntual, agregar f_emp[3] y f_emp[9])
 
         # SUMA a la reacción total
-        print()
-        print()
-        print(f"Reacciones de empotramiento de la carga {carga.id} en barra {self.id}:")
+        #print()
+        #print()
+        #print(f"Reacciones de empotramiento de la carga {carga.id} en barra {self.id}:")
         self.reaccion_de_empotramiento_local_total += f_empotramiento
-        print("Reacción de empotramiento TOTAL:", self.reaccion_de_empotramiento_local_total) #RE BIEN VERIFICADISIMO
+        #print("Reacción de empotramiento TOTAL:", self.reaccion_de_empotramiento_local_total) #RE BIEN VERIFICADISIMO
         self.reaccion_de_empotramiento_i_local += f_empotramiento[:6]
-        print("Reacción de empotramiento del nudo i:", self.reaccion_de_empotramiento_i_local) #RE BIEN VERIFICADISIMO
+        #print("Reacción de empotramiento del nudo i:", self.reaccion_de_empotramiento_i_local) #RE BIEN VERIFICADISIMO
         self.reaccion_de_empotramiento_f_local += f_empotramiento[6:]
-        print("Reacción de empotramiento del nudo f:", self.reaccion_de_empotramiento_f_local) #RE BIEN VERIFICADISIMO
-        print()
-        print()
+        #print("Reacción de empotramiento del nudo f:", self.reaccion_de_empotramiento_f_local) #RE BIEN VERIFICADISIMO
+        #print()
+        #print()
         return self.reaccion_de_empotramiento_local_total
 
 
@@ -404,21 +402,21 @@ class Barra:
     def matriz_A(self, alpha):
         return np.array([
             [1, 0, 0],
-            [0,  np.cos(alpha),  np.sin(alpha)],
-            [0, -np.sin(alpha),  np.cos(alpha)]
+            [0,  np.cos(alpha),  -np.sin(alpha)],
+            [0, np.sin(alpha),  np.cos(alpha)]
         ])
 
     def matriz_B(self, beta):
         return np.array([
-            [ np.cos(beta), 0, -np.sin(beta)],   # el tercero  este era  NEGATIVO
+            [ np.cos(beta), 0, np.sin(beta)],   # el tercero  este era  NEGATIVO
             [0,            1,      0      ],
-            [ np.sin(beta), 0,  np.cos(beta)] # el primero de este era  POSITIVO
+            [ - np.sin(beta), 0,  np.cos(beta)] # el primero de este era  POSITIVO
         ])
 
     def matriz_C(self, gamma):
         return np.array([
-            [ np.cos(gamma), np.sin(gamma), 0],#el segundo era POSITIVo
-            [-np.sin(gamma), np.cos(gamma), 0], #El primero era Negativo
+            [ np.cos(gamma), -np.sin(gamma), 0],#el segundo era POSITIVo
+            [np.sin(gamma), np.cos(gamma), 0], #El primero era Negativo
             [      0,              0,       1]
         ])
 
@@ -428,10 +426,15 @@ class Barra:
         L = np.linalg.norm(vec)
         x1, y1, z1 = vec / L
         #print("Coordenadas normalizadas:", x1, y1, z1)
-        beta = np.arcsin(z1)             # elevación (con respecto a XY)
-        gamma = np.arctan2(y1, x1)        # azimut (en XY)
-        #print("Beta:", beta)
-        #print("gamma:", gamma)
+        beta = np.arctan2(z1,x1)             # elevación (con respecto a XY)
+        if x1 == 0:
+            beta =  pi / 2 if z1 > 0 else - pi / 2  # Evita división por cero
+
+        gamma = np.arctan2( y1, x1)        # azimut (en XY)
+        if x1 == 0:
+            gamma =  pi / 2 if y1 > 0 else  -pi / 2  # Evita división por cero
+        print("Beta:", beta)
+        print("gamma:", gamma)
         return beta, gamma
 
 
@@ -442,7 +445,7 @@ class Barra:
         #print(A)
         XD = self.KlocXD()
         #print(XD)
-        self.k_eje_dat = (A.T @ XD) @ A
+        self.k_eje_dat = (A @ XD) @ A.T
         return self.k_eje_dat
     
     def k_altura(self):
@@ -453,7 +456,7 @@ class Barra:
         B = self.matriz_B(beta)
         B = self.bloque_diagonal_4x3(B)  # Convertir a bloque diagonal 4x3
         XD = self.k_eje()
-        self.k_altura_dat = (B.T @ XD) @ B
+        self.k_altura_dat = (B @ XD) @ B.T
         return self.k_altura_dat
 
     def Kglobal(self):
@@ -465,5 +468,5 @@ class Barra:
         C = self.bloque_diagonal_4x3(C)  # Convertir a bloque diagonal 4x3
         #print("C:", C  )
         XD = self.k_altura()
-        self.k_global_dat = (C.T @ XD) @ C
+        self.k_global_dat = (C @ XD) @ C.T
         return self.k_global_dat

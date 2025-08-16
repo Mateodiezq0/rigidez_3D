@@ -56,14 +56,14 @@ class Estructura:
 
             # Sumo para cada nodo de la barra
             vector_global[idx_i:idx_i+6] += barra.reaccion_nudo_i_equivalente_global
-            print(f"Barra {barra.id} - Nodo inicial EQUIVALENTE GLOBAL {barra.nodo_i}: {barra.reaccion_nudo_i_equivalente_global}"
-                  f" (ESTO ES LO QUE QUIERO VER DEL ENSAMBLE INICIAL {idx_i}:{idx_i+6})")
+            #print(f"Barra {barra.id} - Nodo inicial EQUIVALENTE GLOBAL {barra.nodo_i}: {barra.reaccion_nudo_i_equivalente_global}"
+                  #f" (ESTO ES LO QUE QUIERO VER DEL ENSAMBLE INICIAL {idx_i}:{idx_i+6})")
             vector_global[idx_j:idx_j+6] += barra.reaccion_nudo_f_equivalente_global
-            print(f"Barra {barra.id} - Nodo final EQUIVALENTE GLOBAL {barra.nodo_f}: {barra.reaccion_nudo_f_equivalente_global}"
-                  f" (ESTO ES LO QUE QUIERO VER DEL ENSAMBLE FINAL {idx_j}:{idx_j+6})")
+            #print(f"Barra {barra.id} - Nodo final EQUIVALENTE GLOBAL {barra.nodo_f}: {barra.reaccion_nudo_f_equivalente_global}"
+                  #f" (ESTO ES LO QUE QUIERO VER DEL ENSAMBLE FINAL {idx_j}:{idx_j+6})")
 
         self.vector_nodal_equivalente = vector_global
-        print("Vector nodal equivalente (global): IMPORTANTISIMO", vector_global)
+        #print("Vector nodal equivalente (global): IMPORTANTISIMO", vector_global)
         return vector_global
     
     def ensamble_matriz_global(self):
@@ -197,7 +197,7 @@ class Estructura:
             f_reacciones_empotramiento_de_barra = barra.reaccion_de_empotramiento_global.copy()
             
 
-            print(f"vector de empotramiento de barra {barra.id}: {f_reacciones_empotramiento_de_barra}")
+            #print(f"vector de empotramiento de barra {barra.id}: {f_reacciones_empotramiento_de_barra}")
 
             # Solicitaciones internas (F = K*D + Femp)
             F_interna = K_barra @ D_barra + f_reacciones_empotramiento_de_barra
