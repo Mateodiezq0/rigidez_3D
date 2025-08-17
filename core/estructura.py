@@ -200,14 +200,16 @@ class Estructura:
             #print(f"vector de empotramiento de barra {barra.id}: {f_reacciones_empotramiento_de_barra}")
 
             # Solicitaciones internas (F = K*D + Femp)
-            F_interna = K_barra @ D_barra + f_reacciones_empotramiento_de_barra
+            F_interna_sin_empotramiento = K_barra @ D_barra
+            F_interna = F_interna_sin_empotramiento + f_reacciones_empotramiento_de_barra
 
             if debug:
                 print(f"\nBarra {barra.id}:")
                 print("D_barra:", D_barra)
                 print("K_barra:\n", K_barra)
                 print("F_emp_barra:", f_reacciones_empotramiento_de_barra)
-                print("F_interna:", F_interna)
+                print("F_interna sin empotramiento:", F_interna_sin_empotramiento)
+                print("F interna final:", F_interna)
                 print("================ XDXDXD ================")
 
             lista_solicitaciones.append(F_interna)
