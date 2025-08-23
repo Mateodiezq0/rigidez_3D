@@ -34,20 +34,33 @@ class Barra:
     reaccion_de_empotramiento_i_local: Optional[np.ndarray] = field(default_factory=lambda: np.zeros(6))          #Reaccion equivalente de nodo inicial LOCAL
     reaccion_de_empotramiento_f_local: Optional[np.ndarray] = field(default_factory=lambda: np.zeros(6))          #Reaccion equivalente de nodo final LOCAL
 
+    reaccion_de_empotramiento_rotado_eje: Optional[np.ndarray] = field(default_factory=lambda: np.zeros(12))
+
     reaccion_de_empotramiento_global: Optional[np.ndarray] = field(default_factory=lambda: np.zeros(12))           #Reaccion total de las barras GLOBAL
     reaccion_nudo_i_equivalente_global: Optional[np.ndarray] = field(default_factory=lambda: np.zeros(6))          #Reaccion equivalente de nodo inicial GLOBAL
     reaccion_nudo_f_equivalente_global: Optional[np.ndarray] = field(default_factory=lambda: np.zeros(6))          #Reaccion equivalente de nodo final GLOBAL
     
     k_global_dat : Optional[np.ndarray] = None  # Matriz de rigidez global (12x12)
     
-    
+    def p_eje(self):
+        alpha = np.radians(self.tita or 0.0)
+        A = self.matriz_A(alpha)
+        A = self.bloque_diagonal_4x3(A)
+        print("Matriz A extendida:\n", A)
+        self.reaccion_de_empotramiento_rotado_eje = A @ self.reaccion_de_empotramiento_local_total
+        print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
+        print(self.reaccion_de_empotramiento_rotado_eje)
+        return self.reaccion_de_empotramiento_rotado_eje
+
     def p_global(self):
+        XD = self.p_eje()
         sm = self.calcular_submatriz_de_rotacion()
         T = self.bloque_diagonal_4x3(sm)
-        self.reaccion_de_empotramiento_global = T.T @ self.reaccion_de_empotramiento_local_total
+        self.reaccion_de_empotramiento_global = T.T @ self.reaccion_de_empotramiento_rotado_eje
         #print()
         #print("ID de la barra:", self.id)
-        #print("Reacción de empotramiento rotado en global:", self.reaccion_de_empotramiento_global)
+        print("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
+        print("Reacción de empotramiento rotado en global:", self.reaccion_de_empotramiento_global)
         #print()
         self.reaccion_nudo_i_equivalente_global = -(self.reaccion_de_empotramiento_global[:6])
         #print(f"Reacción de nudo {self.nodo_i} rotado en global:", self.reaccion_nudo_i_equivalente_global)
@@ -383,8 +396,19 @@ class Barra:
         return T
 
     def Kglobal(self):
+        alpha = np.radians(self.tita or 0.0)
+        A = self.matriz_A(alpha)
+        A = self.bloque_diagonal_4x3(A)
+        k_global_rotado_eje = A @ self.KlocXD() @ A.T
         sm = self.calcular_submatriz_de_rotacion()
         T = self.bloque_diagonal_4x3(sm)
-        k_local_p_glob = self.KlocXD()
-        k_global_transformado = (T.T @ k_local_p_glob) @ T
+        k_global_transformado = (T.T @ k_global_rotado_eje) @ T
+
         return k_global_transformado
+
+    def matriz_A(self, alpha): 
+        return np.array(
+            [[1, 0, 0], 
+            [0, np.cos(alpha), -np.sin(alpha)], 
+            [0, np.sin(alpha), np.cos(alpha)] 
+            ])

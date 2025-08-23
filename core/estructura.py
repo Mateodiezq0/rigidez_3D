@@ -31,7 +31,6 @@ class Estructura:
         self.cargas.append(carga)
 
 
-    
     def ensamble_vector_cargas_nodales_equivalentes(self):
         """
         Ensambla los vectores nodales equivalentes (ya en global) de TODAS las barras.
@@ -61,6 +60,16 @@ class Estructura:
             vector_global[idx_j:idx_j+6] += barra.reaccion_nudo_f_equivalente_global
             #print(f"Barra {barra.id} - Nodo final EQUIVALENTE GLOBAL {barra.nodo_f}: {barra.reaccion_nudo_f_equivalente_global}"
                   #f" (ESTO ES LO QUE QUIERO VER DEL ENSAMBLE FINAL {idx_j}:{idx_j+6})")
+        
+        for carga_nodal in self.cargas_nodales:
+            print(vector_global)
+            nodo_id = (carga_nodal.nodo_id - 1) * dof_por_nodo
+            carga = carga_nodal.vector()
+            vector_global[nodo_id:nodo_id+6] += carga
+            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+            print()
+            print(f"Carga nodal en nodo {carga_nodal.nodo_id}: {carga} {nodo_id}:{nodo_id+6}")
+            print(vector_global)
 
         self.vector_nodal_equivalente = vector_global
         #print("Vector nodal equivalente (global): IMPORTANTISIMO", vector_global)
