@@ -92,7 +92,7 @@ class Barra:
         Añade una carga a la barra (y suma sus reacciones equivalentes).
         Este método asegura el ACUMULADO.
         """
-        f_empotramiento = self.reacciones_de_empotramiento_carga_puntual(carga)
+        f_empotramiento = carga.reacciones_de_empotramiento(self)
         self.cargas = np.append(self.cargas, carga)
         # NO hace falta volver a sumar, ya se sumó dentro de la función
         return f_empotramiento
@@ -169,139 +169,6 @@ class Barra:
         print("Ortogonalidad y·z:", np.dot(self.y_local, self.z_local))
         print("Determinante base (debe ser +1):", np.linalg.det(np.column_stack([self.x_local, self.y_local, self.z_local])))
 
-
-
-    def reacciones_de_empotramiento_carga_puntual(self, carga: "CargaPuntual"):
-        """
-        Calcula las reacciones equivalentes en los extremos de la barra
-        debidas a una carga puntual en cualquier parte de la barra, usando sistema local.
-        Convención:
-        - Xlocal = longitud de barra (de nodo_i a nodo_f)
-        - Zlocal = "horizontal" (Yglobal si barra es Xglobal)
-        - Ylocal = "vertical" (Zglobal si barra es Xglobal)
-        Retorna un vector de fuerzas nodales equivalentes (12) en local.
-        """
-        # 1. Asegura la base local correcta siempre
-        self.calcular_longitud_y_bases()
-
-        # 2. Proyecta la carga en el sistema local de la barra
-        modulo = carga.q
-        alpha_x = np.radians(carga.alpha_x)
-        alpha_y = np.radians(carga.alpha_y)
-        alpha_z = np.radians(carga.alpha_z)
-        v_carga_global = modulo * np.array([np.cos(alpha_x), np.cos(alpha_y), np.cos(alpha_z)])
-        print("v_carga_global:", v_carga_global)
-        r_base = np.vstack([self.x_local, self.y_local, self.z_local])
-        print("r_base:", r_base)
-        f_local = r_base @ v_carga_global  # [Fx, Fy, Fz]
-        print("v_carga_global:", v_carga_global)
-        print("f_local:", f_local)  #RE BIEN
-
-        # 3. Posición relativa de la carga
-        nodo_i = self.nodo_i_obj.get_coord()
-        pos_carga = np.array([carga.x, carga.y, carga.z])
-        vec_ic = pos_carga - nodo_i
-        #print("Vector desde nodo_i a carga:", vec_ic)
-        li = np.dot(vec_ic, self.x_local)  # Proyectado sobre Xlocal (longitud)
-        lj = self.L - li #bien
-
-        # Axial (esto siempre igual)
-        N = f_local[0]
-        Ni = N * (lj / self.L)
-        Nj = N * (li / self.L)
-
-        # Cortantes locales
-        Qy = f_local[1]
-        #print("Qy:", Qy)
-        Qz = f_local[2]
-        #print("Qz:", Qz)
-
-        # -------- FLEXIÓN POR Qy (Momento en Z_local) ----------
-        # Fuerza local en Y
-
-        #fy_prueba = f_local * self.y_local
-        #fz_prueba = f_local * self.z_local
-        #print("Proyección de la fuerza local en Yglobal:", fy_prueba)
-        #print("Proyección de la fuerza local en Zglobal:", fz_prueba)  RE MAL
-
-        #fuerza_y = -fy_prueba
-        #fuerza_y = np.array([0, Qy, 0])
-        
-        
-        #print("fuerza_y:", fuerza_y)
-        #momento_z_vec = np.cross(self.x_local,fuerza_y)
-        #print("momento_z_vec:", momento_z_vec)
-        #print("eje_z_local:", self.z_local)
-        #signo_mz = np.sign(np.dot(momento_z_vec, self.z_local)) or 1    
-        #print("signo_mz:", signo_mz)
-        """ voy a hacer una prueba con lo que dije"""
-        v_reaccion_global = - v_carga_global
-
-        reaccion_momento_global = np.cross(self.x_local, v_reaccion_global)
-        reaccion_momento_global_unitario = reaccion_momento_global / np.linalg.norm(reaccion_momento_global)
-        signo_mz = np.sign(np.dot(reaccion_momento_global_unitario, self.z_local)) or 1
-
-        Qi_y = Qy * ((lj / self.L)**2) * (3 - 2 * (lj / self.L))
-        Qj_y = Qy * ((li / self.L)**2) * (3 - 2 * (li / self.L))
-        Mi_z = signo_mz * (abs(Qy) * li * ((lj / self.L)**2))
-        #print("Mi_z:", Mi_z)
-        Mj_z = - signo_mz * (abs(Qy) * lj * ((li / self.L)**2))
-        #print("Mj_z:", Mj_z)
-
-        # -------- FLEXIÓN POR Qz (Momento en Y_local) ----------
-        
-        #fuerza_z= -fz_prueba
-        #fuerza_z = np.array([0, 0, Qz])
-        
-        
-        #print("fuerza_z:", fuerza_z)
-        #momento_y_vec = np.cross(self.x_local, fuerza_z)
-        #print("momento_y_vec:", momento_y_vec)
-        #signo_my = np.sign(np.dot(momento_y_vec, self.y_local)) or 1
-        #print("signo_my:", signo_my)
-
-        signo_my = np.sign(np.dot(reaccion_momento_global_unitario, self.y_local)) or 1
-
-        Qi_z = Qz * ((lj / self.L)**2) * (3 - 2 * (lj / self.L))
-        Qj_z = Qz * ((li / self.L)**2) * (3 - 2 * (li / self.L))
-        Mi_y = signo_my * (abs(Qz) * li * ((lj / self.L)**2))
-        #print("Mi_y:", Mi_y)
-        Mj_y = - signo_my * (abs(Qz) * lj * ((li / self.L)**2))
-        #print("Mj_y:", Mj_y)
-
-        # 5. Vector de fuerzas nodales equivalentes (12) - tu convención
-        f_empotramiento = np.zeros(12)
-        # Nodo inicial (i)
-        f_empotramiento[0] = -Ni        # Axial (X_local)
-        f_empotramiento[1] = -Qi_y      # Cortante (Y_local)
-        f_empotramiento[2] = -Qi_z      # Cortante (Z_local)
-        f_empotramiento[4] =  Mi_y      # Momento flexor en Y_local
-        f_empotramiento[5] =  Mi_z      # Momento flexor en Z_local
-
-        # Nodo final (j)
-        f_empotramiento[6] = -Nj
-        f_empotramiento[7] = -Qj_y
-        f_empotramiento[8] = -Qj_z
-        f_empotramiento[10] = Mj_y
-        f_empotramiento[11] = Mj_z
-
-        # (Si tenés que sumar torsión o momento puntual, agregar f_emp[3] y f_emp[9])
-
-        # SUMA a la reacción total
-        #print()
-        #print()
-        print(f"Reacciones de empotramiento de la carga {carga.id} en barra {self.id}:")
-        self.reaccion_de_empotramiento_local_total += f_empotramiento
-        print("Reacción de empotramiento TOTAL:", self.reaccion_de_empotramiento_local_total) #RE BIEN VERIFICADISIMO
-        self.reaccion_de_empotramiento_i_local += f_empotramiento[:6]
-        print("Reacción de empotramiento del nudo i:", self.reaccion_de_empotramiento_i_local) #RE BIEN VERIFICADISIMO
-        self.reaccion_de_empotramiento_f_local += f_empotramiento[6:]
-        print("Reacción de empotramiento del nudo f:", self.reaccion_de_empotramiento_f_local) #RE BIEN VERIFICADISIMO
-        #print()
-        #print()
-        return self.reaccion_de_empotramiento_local_total
-
-
     def KlocXD(self):
         # Asegura que la longitud y las bases están listas
         self.calcular_longitud_y_bases()
@@ -315,23 +182,21 @@ class Barra:
         J = self.J
 
         # Matriz de rigidez para 3D (12x12)
-        Kloc = np.zeros((12, 12))  # 12 grados de libertad
+        Kloc = np.zeros((12, 12)) 
 
-        # Los términos de la matriz de rigidez local (según la imagen que nos diste)
-        Kloc[0, 0] = E * A / L  # Rigidez axial (A * E / L)
+        Kloc[0, 0] = E * A / L  # Rigidez axial 
         Kloc[1, 1] = 12 * E * I_z / L**3  # Rigidez de flexión en Z
         Kloc[2, 2] = 12 * E * I_y / L**3  # Rigidez de flexión en Y
         Kloc[3, 3] = G * J / L  # Rigidez torsional
         Kloc[4, 4] = 4 * E * I_y / L  # Flexión en Y
         Kloc[5, 5] = 4 * E * I_z / L  # Flexión en Z
-        Kloc[6, 6] = E * A / L  # Rigidez axial (A * E / L)
+        Kloc[6, 6] = E * A / L  # Rigidez axial 
         Kloc[7, 7] = 12 * E * I_z / L**3  # Rigidez de flexión en Z
         Kloc[8, 8] = 12 * E * I_y / L**3  # Rigidez de flexión en Y
         Kloc[9, 9] = G * J / L  # Rigidez torsional
         Kloc[10, 10] = 4 * E * I_y / L  # Flexión en Y
         Kloc[11, 11] = 4 * E * I_z / L  # Flexión en Z
 
-        # Rellenamos las otras entradas simétricas de la matriz
         Kloc[4, 2] = Kloc[2, 4] = -6 * E * I_y / L**2
         Kloc[1, 5] = Kloc[5, 1] = 6 * E * I_z / L**2 
         Kloc[6, 0] = Kloc[0, 6] = - E * A / L 
