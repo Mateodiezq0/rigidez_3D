@@ -21,7 +21,8 @@ class Estructura:
     def agregar_nodo(self, nodo):
         self.nodos.append(nodo)
 
-    def agregar_barra(self, barra):
+    def agregar_barra(self, barra: Barra):
+        barra.calcular_longitud_y_bases()  # Asegura que la barra tenga su longitud y bases calculadas
         self.barras.append(barra)
 
     def agregar_carga_nodal(self, carga):
@@ -225,3 +226,13 @@ class Estructura:
 
         return lista_solicitaciones
     
+    def calcular_desplazamientos_locales(self):
+       if not hasattr(self, "desplazamientos") or self.desplazamientos is None:
+            self.resolver_desplazamientos()
+    
+       D = self.desplazamientos
+       
+       
+       
+
+
