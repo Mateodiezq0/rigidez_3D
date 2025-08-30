@@ -63,9 +63,9 @@ K2 = barra2.Kglobal()
 K3 = barra3.Kglobal()
 K_global = estructura.ensamble_matriz_global()
 F = estructura.ensamble_vector_cargas_nodales_equivalentes()
-D = estructura.resolver_desplazamientos(1)
-R = estructura.calcular_reacciones(1)
-
+D = estructura.resolver_desplazamientos()
+R = estructura.calcular_reacciones()
+R_loc = estructura.calcular_reacciones_locales()
 # 6 cargas  
 
 
@@ -89,4 +89,5 @@ with pd.ExcelWriter("matrices_rigidez_3D.xlsx") as writer:
     pd.DataFrame(F).to_excel(writer, sheet_name="F", index=False, header=False)
     pd.DataFrame(D).to_excel(writer, sheet_name="Desplazamientos", index=False, header=False)
     pd.DataFrame(R).to_excel(writer, sheet_name="Reacciones", index=False, header=False)
+    pd.DataFrame(R_loc).to_excel(writer, sheet_name="Reacciones locales xd", index=False, header=False)
 print("Matrices exportadas en 'matrices_rigidez_3D.xlsx'")

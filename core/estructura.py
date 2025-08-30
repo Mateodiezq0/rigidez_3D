@@ -17,6 +17,7 @@ class Estructura:
     vector_nodal_equivalente: Optional[np.ndarray] = None
     desplazamientos: Optional[np.ndarray] = None
     K_global: Optional[np.ndarray] = None
+    reacciones: Optional[np.ndarray] = None
     
     def agregar_nodo(self, nodo):
         self.nodos.append(nodo)
@@ -223,14 +224,33 @@ class Estructura:
                 print("================ XDXDXD ================")
 
             lista_solicitaciones.append(F_interna)
+        self.reacciones = np.array(lista_solicitaciones)
+        return lista_solicitaciones #No es solicitaciones, es reacciones xd
+    
+    def calcular_reacciones_locales(self):
+        if not hasattr(self, "reacciones") or self.reacciones is None:
+            self.calcular_reacciones()
 
-        return lista_solicitaciones
-    
-    def calcular_desplazamientos_locales(self):
-       if not hasattr(self, "desplazamientos") or self.desplazamientos is None:
-            self.resolver_desplazamientos()
-    
-       D = self.desplazamientos
+        R = self.reacciones
+        R_local = np.zeros((len(self.barras), 12))   # N cantidad de vectores de 3
+        for barra in self.barras:
+            
+            idx_i = barra.nodo_i - 1
+            coso_rotacion = barra.matriz_A(np.radians(barra.tita or 0.0))
+            coso_rotacion_4x3 = barra.bloque_diagonal_4x3(coso_rotacion)
+            
+            R_local_temp = coso_rotacion_4x3.T @ R[idx_i]
+
+            submatriz_rotacion_xd = barra.calcular_submatriz_de_rotacion()
+            submatriz_rotacion_xd_4x3 = barra.bloque_diagonal_4x3(submatriz_rotacion_xd)
+
+            R_local[idx_i, :] = submatriz_rotacion_xd_4x3 @ R_local_temp
+
+        return R_local
+
+            
+
+
        
        
        
