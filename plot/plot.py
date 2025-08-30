@@ -19,9 +19,9 @@ nodos = {
 
 # --- Crear barras ---
 barras = [
-    Barra(0, 0, 1, E=200000, I_x=1, I_y=1, I_z=1, G=80000, J=0.5, nodo_i_obj=nodos[0], nodo_f_obj=nodos[1]),
-    Barra(1, 1, 2, E=200000, I_x=1, I_y=1, I_z=1, G=80000, J=0.5, nodo_i_obj=nodos[1], nodo_f_obj=nodos[2]),
-    Barra(2, 2, 3, E=200000, I_x=1, I_y=1, I_z=1, G=80000, J=0.5, nodo_i_obj=nodos[2], nodo_f_obj=nodos[3]),
+    Barra(0, 0, 1, E=200000, G=80000, J=0.5, nodo_i_obj=nodos[0], nodo_f_obj=nodos[1]),
+    Barra(1, 1, 2, E=200000, G=80000, J=0.5, nodo_i_obj=nodos[1], nodo_f_obj=nodos[2]),
+    Barra(2, 2, 3, E=200000, G=80000, J=0.5, nodo_i_obj=nodos[2], nodo_f_obj=nodos[3]),
 ]
 
 # --- Visualización ---

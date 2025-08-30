@@ -17,11 +17,13 @@ class Estructura:
     vector_nodal_equivalente: Optional[np.ndarray] = None
     desplazamientos: Optional[np.ndarray] = None
     K_global: Optional[np.ndarray] = None
+    reacciones: Optional[np.ndarray] = None
     
     def agregar_nodo(self, nodo):
         self.nodos.append(nodo)
 
-    def agregar_barra(self, barra):
+    def agregar_barra(self, barra: Barra):
+        barra.calcular_longitud_y_bases()  # Asegura que la barra tenga su longitud y bases calculadas
         self.barras.append(barra)
 
     def agregar_carga_nodal(self, carga):
@@ -31,7 +33,6 @@ class Estructura:
         self.cargas.append(carga)
 
 
-    
     def ensamble_vector_cargas_nodales_equivalentes(self):
         """
         Ensambla los vectores nodales equivalentes (ya en global) de TODAS las barras.
@@ -61,6 +62,16 @@ class Estructura:
             vector_global[idx_j:idx_j+6] += barra.reaccion_nudo_f_equivalente_global
             #print(f"Barra {barra.id} - Nodo final EQUIVALENTE GLOBAL {barra.nodo_f}: {barra.reaccion_nudo_f_equivalente_global}"
                   #f" (ESTO ES LO QUE QUIERO VER DEL ENSAMBLE FINAL {idx_j}:{idx_j+6})")
+        
+        for carga_nodal in self.cargas_nodales:
+            print(vector_global)
+            nodo_id = (carga_nodal.nodo_id - 1) * dof_por_nodo
+            carga = carga_nodal.vector()
+            vector_global[nodo_id:nodo_id+6] += carga
+            print("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+            print()
+            print(f"Carga nodal en nodo {carga_nodal.nodo_id}: {carga} {nodo_id}:{nodo_id+6}")
+            print(vector_global)
 
         self.vector_nodal_equivalente = vector_global
         #print("Vector nodal equivalente (global): IMPORTANTISIMO", vector_global)
@@ -200,17 +211,48 @@ class Estructura:
             #print(f"vector de empotramiento de barra {barra.id}: {f_reacciones_empotramiento_de_barra}")
 
             # Solicitaciones internas (F = K*D + Femp)
-            F_interna = K_barra @ D_barra + f_reacciones_empotramiento_de_barra
+            F_interna_sin_empotramiento = K_barra @ D_barra
+            F_interna = F_interna_sin_empotramiento + f_reacciones_empotramiento_de_barra
 
             if debug:
                 print(f"\nBarra {barra.id}:")
                 print("D_barra:", D_barra)
                 print("K_barra:\n", K_barra)
                 print("F_emp_barra:", f_reacciones_empotramiento_de_barra)
-                print("F_interna:", F_interna)
+                print("F_interna sin empotramiento:", F_interna_sin_empotramiento)
+                print("F interna final:", F_interna)
                 print("================ XDXDXD ================")
 
             lista_solicitaciones.append(F_interna)
-
-        return lista_solicitaciones
+        self.reacciones = np.array(lista_solicitaciones)
+        return lista_solicitaciones #No es solicitaciones, es reacciones xd
     
+    def calcular_reacciones_locales(self):
+        if not hasattr(self, "reacciones") or self.reacciones is None:
+            self.calcular_reacciones()
+
+        R = self.reacciones
+        R_local = np.zeros((len(self.barras), 12))   # N cantidad de vectores de 3
+        for barra in self.barras:
+            
+            idx_i = barra.nodo_i - 1
+            coso_rotacion = barra.matriz_A(np.radians(barra.tita or 0.0))
+            coso_rotacion_4x3 = barra.bloque_diagonal_4x3(coso_rotacion)
+            
+            R_local_temp = coso_rotacion_4x3.T @ R[idx_i]
+
+            submatriz_rotacion_xd = barra.calcular_submatriz_de_rotacion()
+            submatriz_rotacion_xd_4x3 = barra.bloque_diagonal_4x3(submatriz_rotacion_xd)
+
+            R_local[idx_i, :] = submatriz_rotacion_xd_4x3 @ R_local_temp
+
+        return R_local
+
+            
+
+
+       
+       
+       
+
+
