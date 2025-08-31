@@ -1,6 +1,7 @@
 from data.entrada.cargarBarra import *
 from data.entrada.cargarCargaPuntual import *
 from data.entrada.cargarNodo import *
+from core.estructura import Estructura
 
 nodos = leer_nodos()
 
@@ -8,7 +9,9 @@ barras = leer_barras()
 
 cargas = leer_cargas()
 
-unir_barras_nodos(barras,nodos)
+estructura = Estructura() 
+
+estructura.cargar_estructura(nodos,barras,cargas)
 
 print("Nodos: ",nodos)
 print()

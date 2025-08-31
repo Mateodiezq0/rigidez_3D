@@ -248,7 +248,27 @@ class Estructura:
 
         return R_local
 
+    def cargar_estructura(self,nodos,barras,cargas):
+        for nodo in nodos:
+            self.agregar_nodo(nodo)
+        
+        for barra in barras:
             
+            for nodo in nodos:
+                if barra.nodo_i == nodo.id:
+                    barra.nodo_i_obj = nodo
+                elif barra.nodo_f == nodo.id:
+                    barra.nodo_f_obj = nodo 
+            
+            for carga in cargas:
+                if barra.id == carga.id:
+                    barra.añadirCarga(carga)
+                    
+            self.agregar_barra(barra)
+        
+        for carga in cargas:
+            self.agregar_carga(carga)
+        
 
 
        
