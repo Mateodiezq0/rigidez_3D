@@ -12,17 +12,17 @@ restric_cols = ['Fx', 'Fy', 'Fz', 'Mx', 'My', 'Mz']
 valores_cols = ['Dx', 'Dy', 'Dz', 'Tita_x', 'Tita_y', 'Tita_z']
 
 nodos = []
+def leer_nodos():
+    for idx, row in df.iterrows():
+        #print(row)
+        nodo = Nodo(
+            id = int(row['id_Nodo']),
+            x = float(row['x_global']),
+            y = float(row['y_global']),
+            z = float(row['z_global']),
+            restricciones = [str(row[c]).strip().upper() == ("VERDADERO" or 1) for c in restric_cols],
+            valores_prescritos = [float(row[c]) for c in valores_cols]
+        )
+        nodos.append(nodo)
 
-for idx, row in df.iterrows():
-    print(row)
-    nodo = Nodo(
-        id = int(row['id_Nodo']),
-        x = float(row['x_global']),
-        y = float(row['y_global']),
-        z = float(row['z_global']),
-        restricciones = [str(row[c]).strip().upper() == ("VERDADERO" or 1) for c in restric_cols],
-        valores_prescritos = [float(row[c]) for c in valores_cols]
-    )
-    nodos.append(nodo)
-
-print(nodos)
+    return nodos
