@@ -50,9 +50,9 @@ estructura.agregar_nodo(nodo_l)
 
 # 5. Calcular matrices
 print(type(barra1.x_local[0]))
-K1loc = barra1.KlocXD()
+K1loc = barra1.Kloc()
 K1 = barra1.Kglobal()
-k2loc = barra2.KlocXD()
+k2loc = barra2.Kloc()
 K2 = barra2.Kglobal()
 K3 = barra3.Kglobal()
 #K2 = barra2.matriz_rigidez_portico_3d()

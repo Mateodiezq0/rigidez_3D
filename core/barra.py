@@ -48,7 +48,6 @@ class Barra:
         A = self.bloque_diagonal_4x3(A)
         print("Matriz A extendida:\n", A)
         self.reaccion_de_empotramiento_rotado_eje = A @ self.reaccion_de_empotramiento_local_total
-        print("BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB")
         print(self.reaccion_de_empotramiento_rotado_eje)
         return self.reaccion_de_empotramiento_rotado_eje
 
@@ -59,7 +58,6 @@ class Barra:
         self.reaccion_de_empotramiento_global = T.T @ self.reaccion_de_empotramiento_rotado_eje
         #print()
         #print("ID de la barra:", self.id)
-        print("CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC")
         print("Reacción de empotramiento rotado en global:", self.reaccion_de_empotramiento_global)
         #print()
         self.reaccion_nudo_i_equivalente_global = -(self.reaccion_de_empotramiento_global[:6])
@@ -70,22 +68,6 @@ class Barra:
     
     def actualizar_reacciones_global(self):
         self.p_global()
-
-
-
-    #def añadirCarga(self, carga):
-        #"""
-        #Añade una carga a la barra.
-        #La carga debe ser un objeto que tenga los atributos necesarios para transformarla a local.
-        #"""
-        #self.reacciones_de_empotramiento_carga_puntual(carga)               # Mejora 
-        #self.cargas = np.append(self.cargas, carga)   #ESTO ES DEL MATIU VER BIEN
-    
-    #def resetear_reacciones(self): #ESTO LO AGREGUE YO
-        #"""Limpia las reacciones acumuladas (útil antes de recalcular todo el ensamble)"""
-        #self.reaccion_de_empotramiento_local_total = np.zeros(12)
-        #self.reaccion_de_empotramiento_i_local = np.zeros(6)
-        #self.reaccion_de_empotramiento_f_local = np.zeros(6)
 
     def añadirCarga(self, carga): #ESTO LO AGREGUE YO
         """
@@ -157,8 +139,6 @@ class Barra:
         if debug:
             self.debug_bases()
 
-
-
     def debug_bases(self):
         print("x_local:", self.x_local)
         print("y_local:", self.y_local)
@@ -169,12 +149,12 @@ class Barra:
         print("Ortogonalidad y·z:", np.dot(self.y_local, self.z_local))
         print("Determinante base (debe ser +1):", np.linalg.det(np.column_stack([self.x_local, self.y_local, self.z_local])))
 
-    def KlocXD(self):
+    def Kloc(self):
         # Asegura que la longitud y las bases están listas
         self.calcular_longitud_y_bases()
         L = self.L
+        # Calcula los parámetros de la sección transversal usando los datos del objeto y propiedades del material
         E = self.E
-        # Calcula el área de la sección transversal usando los datos del objeto
         A = self.A
         I_y = self.I_y
         I_z = self.I_z
@@ -188,14 +168,14 @@ class Barra:
         Kloc[1, 1] = 12 * E * I_z / L**3  # Rigidez de flexión en Z
         Kloc[2, 2] = 12 * E * I_y / L**3  # Rigidez de flexión en Y
         Kloc[3, 3] = G * J / L  # Rigidez torsional
-        Kloc[4, 4] = 4 * E * I_y / L  # Flexión en Y
-        Kloc[5, 5] = 4 * E * I_z / L  # Flexión en Z
+        Kloc[4, 4] = 4 * E * I_y / L  
+        Kloc[5, 5] = 4 * E * I_z / L  
         Kloc[6, 6] = E * A / L  # Rigidez axial 
         Kloc[7, 7] = 12 * E * I_z / L**3  # Rigidez de flexión en Z
         Kloc[8, 8] = 12 * E * I_y / L**3  # Rigidez de flexión en Y
         Kloc[9, 9] = G * J / L  # Rigidez torsional
-        Kloc[10, 10] = 4 * E * I_y / L  # Flexión en Y
-        Kloc[11, 11] = 4 * E * I_z / L  # Flexión en Z
+        Kloc[10, 10] = 4 * E * I_y / L 
+        Kloc[11, 11] = 4 * E * I_z / L 
 
         Kloc[4, 2] = Kloc[2, 4] = -6 * E * I_y / L**2
         Kloc[1, 5] = Kloc[5, 1] = 6 * E * I_z / L**2 
@@ -213,14 +193,12 @@ class Barra:
         Kloc[11, 7] = Kloc[7, 11] = -6 * E * I_z / L**2  
         
         return Kloc
-    
 
     def bloque_diagonal_4x3(self, M):
         res = np.zeros((12, 12))
         for i in range(4):
             res[i*3:(i+1)*3, i*3:(i+1)*3] = M
         return res
-
 
     def calcular_submatriz_de_rotacion(self):
 
@@ -257,14 +235,14 @@ class Barra:
             [cxy, cyy ,  czy],
             [cxz, cyz,  czz]
         ])
-        print("T aggg xddd =", T)
+        print("T =", T)
         return T
 
     def Kglobal(self):
         alpha = np.radians(self.tita or 0.0)
         A = self.matriz_A(alpha)
         A = self.bloque_diagonal_4x3(A)
-        k_global_rotado_eje = A @ self.KlocXD() @ A.T
+        k_global_rotado_eje = A @ self.Kloc() @ A.T
         sm = self.calcular_submatriz_de_rotacion()
         T = self.bloque_diagonal_4x3(sm)
         k_global_transformado = (T.T @ k_global_rotado_eje) @ T
